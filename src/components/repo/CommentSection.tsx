@@ -1,199 +1,150 @@
 "use client";
 
-import { useState } from "react";
-import { MessageCircle, Send, ThumbsUp, User } from "lucide-react";
-
-interface Comment {
-  id: number;
-  author: string;
-  content: string;
-  createdAt: string;
-  likes: number;
-  liked: boolean;
-}
+import { useEffect, useState } from "react";
+import { Loader2, MessageSquare, Send } from "lucide-react";
 
 interface CommentSectionProps {
   repoFullName: string;
 }
 
+interface RepoComment {
+  id: string;
+  content: string;
+  createdAt: string | Date | null;
+}
+
 export function CommentSection({ repoFullName }: CommentSectionProps) {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<RepoComment[]>([]);
   const [newComment, setNewComment] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadComments() {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await fetch(`/api/comments/${encodeURIComponent(repoFullName)}`);
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({ error: "加载评论失败" }));
+          throw new Error(data.error || "加载评论失败");
+        }
+        const data = await response.json();
+        if (!cancelled) {
+          setComments(Array.isArray(data.comments) ? data.comments : []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "加载评论失败");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadComments();
+    return () => {
+      cancelled = true;
+    };
+  }, [repoFullName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-
-    setIsSubmitting(true);
+    setSubmitting(true);
+    setError("");
 
     try {
-      // TODO: 接入后端 API
-      // await fetch(`/api/comments/${encodeURIComponent(repoFullName)}`, {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ content: newComment.trim() }),
-      // });
-
-      const comment: Comment = {
-        id: Date.now(),
-        author: "匿名用户",
-        content: newComment.trim(),
-        createdAt: new Date().toISOString(),
-        likes: 0,
-        liked: false,
-      };
-
-      setComments((prev) => [comment, ...prev]);
+      const response = await fetch(`/api/comments/${encodeURIComponent(repoFullName)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newComment.trim() }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ error: "评论失败，请先登录" }));
+        throw new Error(data.error || "评论失败，请先登录");
+      }
+      const data = await response.json();
+      setComments((items) => [data.comment, ...items]);
       setNewComment("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "评论失败，请稍后重试");
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-  const handleLike = (commentId: number) => {
-    setComments((prev) =>
-      prev.map((c) =>
-        c.id === commentId
-          ? { ...c, likes: c.liked ? c.likes - 1 : c.likes + 1, liked: !c.liked }
-          : c
-      )
-    );
-  };
-
-  const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 1) return "刚刚";
-    if (minutes < 60) return `${minutes} 分钟前`;
-    if (hours < 24) return `${hours} 小时前`;
-    if (days < 7) return `${days} 天前`;
-    return date.toLocaleDateString("zh-CN", { month: "short", day: "numeric" });
-  };
-
   return (
-    <div
-      style={{
-        background: "rgba(255, 255, 255, 0.9)",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: "var(--radius-lg)",
-        overflow: "hidden",
-        backdropFilter: "blur(8px)",
-      }}
-    >
-      {/* Header */}
+    <div className="card overflow-hidden">
       <div
-        className="flex items-center gap-2 px-4 py-3"
-        style={{ borderBottom: "1px solid var(--border-subtle)" }}
+        className="flex items-center gap-2 px-5 py-3.5"
+        style={{ borderBottom: "1px solid var(--color-border)" }}
       >
-        <MessageCircle style={{ width: 16, height: 16, color: "var(--surface-400)" }} />
-        <span className="text-sm font-medium" style={{ color: "var(--surface-700)" }}>
-          评论
-        </span>
-        {comments.length > 0 && (
-          <span
-            className="text-xs px-1.5 py-0.5 rounded-full"
-            style={{ background: "var(--surface-100)", color: "var(--surface-500)" }}
-          >
-            {comments.length}
-          </span>
-        )}
+        <MessageSquare style={{ width: 16, height: 16, color: "var(--color-text-muted)" }} />
+        <h3 className="text-sm font-semibold" style={{ color: "var(--color-text-heading)" }}>
+          讨论
+        </h3>
       </div>
 
-      {/* Comment form */}
-      <div className="p-4" style={{ borderBottom: comments.length > 0 ? "1px solid var(--border-subtle)" : "none" }}>
-        <form onSubmit={handleSubmit}>
-          <div className="flex gap-2">
-            <div
-              className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full"
-              style={{ background: "var(--surface-100)" }}
-            >
-              <User style={{ width: 14, height: 14, color: "var(--surface-400)" }} />
-            </div>
-            <div className="flex-1">
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="写下你的评论..."
-                rows={2}
-                className="w-full text-sm px-3 py-2 rounded-md resize-none outline-none"
-                style={{
-                  background: "rgba(250, 250, 250, 0.7)",
-                  border: "1px solid var(--border-default)",
-                  color: "var(--surface-900)",
-                }}
-              />
-              <div className="flex justify-end mt-2">
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !newComment.trim()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-                  style={{
-                    background: newComment.trim() ? "var(--accent-indigo)" : "var(--surface-200)",
-                    color: newComment.trim() ? "white" : "var(--surface-400)",
-                    cursor: newComment.trim() ? "pointer" : "not-allowed",
-                  }}
-                >
-                  <Send style={{ width: 12, height: 12 }} />
-                  发送
-                </button>
-              </div>
-            </div>
+      <div className="p-5">
+        {loading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" />
           </div>
-        </form>
-      </div>
-
-      {/* Comments list */}
-      <div className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
-        {comments.map((comment) => (
-          <div key={comment.id} className="p-4">
-            <div className="flex gap-2">
+        ) : comments.length === 0 ? (
+          <p className="text-sm text-center py-4" style={{ color: "var(--color-text-muted)" }}>
+            暂无评论，来发表第一条吧！
+          </p>
+        ) : (
+          <div className="space-y-3 mb-4">
+            {comments.map((comment) => (
               <div
-                className="flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-full"
-                style={{ background: "var(--surface-100)" }}
+                key={comment.id}
+                className="p-3"
+                style={{
+                  background: "var(--color-bg-page)",
+                  borderRadius: "var(--radius-lg)",
+                }}
               >
-                <User style={{ width: 13, height: 13, color: "var(--surface-400)" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium" style={{ color: "var(--surface-700)" }}>
-                    {comment.author}
-                  </span>
-                  <span className="text-xs" style={{ color: "var(--surface-400)" }}>
-                    {formatDate(comment.createdAt)}
-                  </span>
-                </div>
-                <p className="text-sm mt-1" style={{ color: "var(--surface-600)" }}>
+                <p className="text-sm" style={{ color: "var(--color-text-body)" }}>
                   {comment.content}
                 </p>
-                <button
-                  onClick={() => handleLike(comment.id)}
-                  className="flex items-center gap-1 mt-2 text-xs transition-colors"
-                  style={{
-                    color: comment.liked ? "var(--accent-indigo)" : "var(--surface-400)",
-                  }}
-                >
-                  <ThumbsUp style={{ width: 12, height: 12 }} />
-                  {comment.likes > 0 ? comment.likes : "赞"}
-                </button>
+                {comment.createdAt && (
+                  <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)" }}>
+                    {new Date(comment.createdAt).toLocaleDateString("zh-CN")}
+                  </p>
+                )}
               </div>
-            </div>
-          </div>
-        ))}
-
-        {comments.length === 0 && (
-          <div className="p-6 text-center">
-            <MessageCircle className="mx-auto h-6 w-6 mb-2" style={{ color: "var(--surface-300)" }} />
-            <p className="text-sm" style={{ color: "var(--surface-400)" }}>
-              暂无评论，来发表第一条吧
-            </p>
+            ))}
           </div>
         )}
+
+        {error && (
+          <p className="text-xs mb-3" style={{ color: "var(--color-error)" }}>
+            {error}
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            type="text"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="发表你的看法..."
+            className="input flex-1"
+            maxLength={2000}
+          />
+          <button type="submit" className="btn-primary" disabled={submitting} aria-label="发布评论">
+            {submitting ? (
+              <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />
+            ) : (
+              <Send style={{ width: 14, height: 14 }} />
+            )}
+          </button>
+        </form>
       </div>
     </div>
   );

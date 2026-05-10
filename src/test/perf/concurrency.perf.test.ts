@@ -135,7 +135,7 @@ describe("Concurrency & Load Tests", () => {
       "Load Test: Mixed Workload",
       async () => {
         const tasks = [];
-        for (let i = 0; i < 5; i++) {
+        for (let taskIdx = 0; taskIdx < 5; taskIdx++) {
           tasks.push(searchRepositories("react", {}, { page: 1, perPage: 20 }));
         }
         const results = await Promise.all(tasks);

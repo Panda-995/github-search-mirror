@@ -8,7 +8,7 @@ const qdrantClient = new QdrantClient({
 export async function initVectorCollection() {
   const collections = await qdrantClient.getCollections();
   const exists = collections.collections.some(
-    (c) => c.name === "repo_embeddings"
+    (collection) => collection.name === "repo_embeddings"
   );
 
   if (!exists) {

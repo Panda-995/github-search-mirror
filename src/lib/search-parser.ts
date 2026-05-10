@@ -23,12 +23,12 @@ const FILTER_PATTERNS = {
   language: /language:([\w+#-]+)/g,
   stars: /stars:([<>]=?|=)?(\d+)/g,
   forks: /forks:([<>]=?|=)?(\d+)/g,
-  pushed: /pushed:>([\d-]+)/g,
-  created: /created:>([\d-]+)/g,
+  pushed: /pushed:([<>]=?|=)?([\d-]+)/,
+  created: /created:([<>]=?|=)?([\d-]+)/,
   license: /license:([\w-]+)/g,
   topic: /topic:([\w-]+)/g,
-  user: /user:([\w-]+)/g,
-  org: /org:([\w-]+)/g,
+  user: /user:([\w-]+)/,
+  org: /org:([\w-]+)/,
   sort: /sort:(stars|forks|updated)/,
   order: /order:(desc|asc)/,
 };
@@ -77,13 +77,13 @@ export function parseSearchQuery(input: string): ParsedQuery {
 
   const pushedMatch = input.match(FILTER_PATTERNS.pushed);
   if (pushedMatch) {
-    filters.pushed_after = pushedMatch[1];
+    filters.pushed_after = pushedMatch[2];
     query = query.replace(FILTER_PATTERNS.pushed, "");
   }
 
   const createdMatch = input.match(FILTER_PATTERNS.created);
   if (createdMatch) {
-    filters.created_after = createdMatch[1];
+    filters.created_after = createdMatch[2];
     query = query.replace(FILTER_PATTERNS.created, "");
   }
 
@@ -113,6 +113,7 @@ export function parseSearchQuery(input: string): ParsedQuery {
 
   const sortMatch = input.match(FILTER_PATTERNS.sort);
   const orderMatch = input.match(FILTER_PATTERNS.order);
+  query = query.replace(FILTER_PATTERNS.sort, "").replace(FILTER_PATTERNS.order, "");
 
   query = query.trim().replace(/\s+/g, " ");
 

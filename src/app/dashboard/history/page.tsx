@@ -28,8 +28,8 @@ export default async function HistoryPage() {
       <main className="flex-1 min-h-screen">
         <div className="page-container py-6">
           <div className="flex gap-6">
-            <aside className="hidden md:block md:w-1/4 flex-shrink-0">
-              <div className="sticky top-20">
+            <aside className="hidden md:block md:w-1/4 flex-shrink-0 self-start">
+              <div className="sticky top-[64px]">
                 <DashboardSidebar />
               </div>
             </aside>

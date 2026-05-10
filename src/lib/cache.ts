@@ -1,10 +1,13 @@
 import Redis from "ioredis";
 
 let redis: Redis | null = null;
-let redisAvailable = false;
 let redisInitialized = false;
 
 const memoryCache = new Map<string, { value: string; expiresAt: number }>();
+
+const DEFAULT_REDIS_MAX_RETRIES = 1;
+const DEFAULT_REDIS_CONNECT_TIMEOUT_MS = 2000;
+const DEFAULT_MEMORY_CACHE_MAX_ENTRIES = 1000;
 
 function getRedis(): Redis | null {
   if (redisInitialized) return redis;
@@ -15,25 +18,41 @@ function getRedis(): Redis | null {
       host: process.env.REDIS_HOST ?? "localhost",
       port: Number(process.env.REDIS_PORT ?? 6379),
       password: process.env.REDIS_PASSWORD,
-      maxRetriesPerRequest: 1,
-      connectTimeout: 2000,
+      maxRetriesPerRequest: DEFAULT_REDIS_MAX_RETRIES,
+      connectTimeout: DEFAULT_REDIS_CONNECT_TIMEOUT_MS,
       lazyConnect: true,
       retryStrategy: () => null,
       enableOfflineQueue: false,
     });
 
-    instance.on("connect", () => {
-      redisAvailable = true;
-    });
-
-    instance.on("error", () => {
-      redisAvailable = false;
-    });
+    instance.on("error", () => undefined);
 
     redis = instance;
     return redis;
   } catch {
     redis = null;
+    return null;
+  }
+}
+
+async function getReadyRedis(): Promise<Redis | null> {
+  if (process.env.NODE_ENV === "test" && process.env.USE_REDIS_IN_TEST !== "true") {
+    return null;
+  }
+
+  const client = getRedis();
+  if (!client) return null;
+
+  try {
+    const status = (client as Redis & { status?: string }).status;
+    const connect = (client as Redis & { connect?: () => Promise<unknown> }).connect;
+
+    if (status === "wait" && typeof connect === "function") {
+      await connect.call(client);
+    }
+
+    return client;
+  } catch {
     return null;
   }
 }
@@ -45,10 +64,32 @@ function memoryGet<T>(key: string): T | null {
     memoryCache.delete(key);
     return null;
   }
-  return JSON.parse(item.value) as T;
+  try {
+    return JSON.parse(item.value) as T;
+  } catch {
+    memoryCache.delete(key);
+    return null;
+  }
 }
 
 function memorySet(key: string, value: unknown, ttlSeconds: number): void {
+  const now = Date.now();
+  for (const [cacheKey, item] of memoryCache) {
+    if (item.expiresAt <= now) memoryCache.delete(cacheKey);
+  }
+
+  const maxEntries = Number(
+    process.env.MEMORY_CACHE_MAX_ENTRIES ?? DEFAULT_MEMORY_CACHE_MAX_ENTRIES
+  );
+  const boundedMaxEntries = Number.isFinite(maxEntries)
+    ? Math.max(100, Math.trunc(maxEntries))
+    : DEFAULT_MEMORY_CACHE_MAX_ENTRIES;
+  while (memoryCache.size >= boundedMaxEntries) {
+    const oldest = memoryCache.keys().next();
+    if (oldest.done) break;
+    memoryCache.delete(oldest.value);
+  }
+
   memoryCache.set(key, {
     value: JSON.stringify(value),
     expiresAt: Date.now() + ttlSeconds * 1000,
@@ -56,33 +97,34 @@ function memorySet(key: string, value: unknown, ttlSeconds: number): void {
 }
 
 export async function getCache<T>(key: string): Promise<T | null> {
-  const client = getRedis();
+  const client = await getReadyRedis();
 
-  if (client && redisAvailable) {
+  if (client) {
     try {
       const data = await client.get(key);
-      if (data) return JSON.parse(data) as T;
+      if (data) {
+        try {
+          return JSON.parse(data) as T;
+        } catch {
+          await client.del(key).catch(() => {});
+          return null;
+        }
+      }
     } catch {
-      redisAvailable = false;
     }
   }
 
   return memoryGet<T>(key);
 }
 
-export async function setCache(
-  key: string,
-  value: unknown,
-  ttlSeconds: number
-): Promise<void> {
-  const client = getRedis();
+export async function setCache(key: string, value: unknown, ttlSeconds: number): Promise<void> {
+  const client = await getReadyRedis();
 
-  if (client && redisAvailable) {
+  if (client) {
     try {
       await client.setex(key, ttlSeconds, JSON.stringify(value));
       return;
     } catch {
-      redisAvailable = false;
     }
   }
 
@@ -90,13 +132,12 @@ export async function setCache(
 }
 
 export async function deleteCache(key: string): Promise<void> {
-  const client = getRedis();
+  const client = await getReadyRedis();
 
-  if (client && redisAvailable) {
+  if (client) {
     try {
       await client.del(key);
     } catch {
-      redisAvailable = false;
     }
   }
 

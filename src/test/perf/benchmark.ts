@@ -32,7 +32,7 @@ export async function benchmark(
     maxDuration = 30000,
   } = options;
 
-  for (let i = 0; i < warmupIterations; i++) {
+  for (let warmupIdx = 0; warmupIdx < warmupIterations; warmupIdx++) {
     await fn();
   }
 
@@ -41,7 +41,7 @@ export async function benchmark(
   const startTime = performance.now();
 
   if (concurrency === 1) {
-    for (let i = 0; i < iterations; i++) {
+    for (let iterIdx = 0; iterIdx < iterations; iterIdx++) {
       if (performance.now() - startTime > maxDuration) break;
 
       const iterStart = performance.now();
@@ -54,10 +54,10 @@ export async function benchmark(
     }
   } else {
     const batches = Math.ceil(iterations / concurrency);
-    for (let b = 0; b < batches; b++) {
+    for (let batchIdx = 0; batchIdx < batches; batchIdx++) {
       if (performance.now() - startTime > maxDuration) break;
 
-      const batchSize = Math.min(concurrency, iterations - b * concurrency);
+      const batchSize = Math.min(concurrency, iterations - batchIdx * concurrency);
       const batchStart = performance.now();
 
       const promises = Array.from({ length: batchSize }, async () => {
@@ -93,7 +93,7 @@ export async function benchmark(
   }
 
   const sorted = [...times].sort((a, b) => a - b);
-  const avg = sorted.reduce((a, b) => a + b, 0) / sorted.length;
+  const avg = sorted.reduce((sum, val) => sum + val, 0) / sorted.length;
   const min = sorted[0];
   const max = sorted[sorted.length - 1];
   const median = sorted[Math.floor(sorted.length * 0.5)];

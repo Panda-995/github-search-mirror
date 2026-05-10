@@ -1,250 +1,231 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useState } from "react";
-import { Sparkles, Loader2, MessageSquare, Languages, Lightbulb, Send } from "lucide-react";
+import { Sparkles, Loader2, Languages, RotateCcw } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface AIPanelProps {
   repoFullName: string;
   readme: string;
+  description: string;
 }
 
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
+const markdownComponents = {
+  h1: ({ children }: { children?: React.ReactNode }) => <h1 className="readme-h1">{children}</h1>,
+  h2: ({ children }: { children?: React.ReactNode }) => <h2 className="readme-h2">{children}</h2>,
+  h3: ({ children }: { children?: React.ReactNode }) => <h3 className="readme-h3">{children}</h3>,
+  p: ({ children }: { children?: React.ReactNode }) => <p className="readme-p">{children}</p>,
+  a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="readme-a">
+      {children}
+    </a>
+  ),
+  code: ({ children, className }: { children?: React.ReactNode; className?: string }) => {
+    const isInline = !className;
+    return isInline ? (
+      <code className="readme-code-inline">{children}</code>
+    ) : (
+      <pre className="readme-pre">
+        <code className={className}>{children}</code>
+      </pre>
+    );
+  },
+  pre: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  ul: ({ children }: { children?: React.ReactNode }) => <ul className="readme-ul">{children}</ul>,
+  ol: ({ children }: { children?: React.ReactNode }) => <ol className="readme-ol">{children}</ol>,
+  li: ({ children }: { children?: React.ReactNode }) => <li className="readme-li">{children}</li>,
+  blockquote: ({ children }: { children?: React.ReactNode }) => (
+    <blockquote className="readme-blockquote">{children}</blockquote>
+  ),
+  table: ({ children }: { children?: React.ReactNode }) => (
+    <div className="readme-table-wrapper">
+      <table className="readme-table">{children}</table>
+    </div>
+  ),
+  img: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
+    <img {...props} alt={props.alt || ""} className="readme-img" loading="lazy" />
+  ),
+  hr: () => <hr className="readme-hr" />,
+};
+
+function MarkdownContent({ content }: { content: string }) {
+  return (
+    <div className="readme-content">
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
 }
 
-export function AIPanel({ repoFullName, readme }: AIPanelProps) {
-  const [activeTab, setActiveTab] = useState<"explain" | "translate" | "chat">("explain");
-  const [result, setResult] = useState("");
+export function AIPanel({ repoFullName, readme, description }: AIPanelProps) {
+  const [summary, setSummary] = useState("");
+  const [translation, setTranslation] = useState("");
   const [loading, setLoading] = useState(false);
-  const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [translating, setTranslating] = useState(false);
+  const [activeTab, setActiveTab] = useState<"summary" | "translate">("summary");
 
-  const handleAction = async (action: string) => {
+  const generateSummary = async () => {
     setLoading(true);
-    setResult("");
-
     try {
-      const endpoint = action === "translate" ? "/api/ai/translate" : "/api/ai/explain";
-      const body =
-        action === "translate"
-          ? { text: readme || "", targetLang: "zh" }
-          : { repoName: repoFullName, description: "", readme: readme || "" };
-
-      const res = await fetch(endpoint, {
+      const response = await fetch("/api/ai/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ repoName: repoFullName, description, readme }),
       });
-
-      const data = await res.json();
-      setResult(data.translation || data.explanation || data.summary || "暂无结果");
-    } catch {
-      setResult("AI 服务暂时不可用");
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ error: "生成摘要失败" }));
+        throw new Error(data.error || "生成摘要失败");
+      }
+      const data = await response.json();
+      setSummary(data.summary || "暂无摘要");
+    } catch (err) {
+      setSummary(err instanceof Error ? err.message : "生成摘要失败，请稍后重试");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChatSubmit = async () => {
-    const question = chatInput.trim();
-    if (!question || loading) return;
-
-    const newMessages: ChatMessage[] = [...chatMessages, { role: "user", content: question }];
-    setChatMessages(newMessages);
-    setChatInput("");
-    setLoading(true);
-
+  const translateReadme = async () => {
+    if (!readme) return;
+    setTranslating(true);
     try {
-      const res = await fetch("/api/ai/explain", {
+      const response = await fetch("/api/ai/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          repoName: repoFullName,
-          description: "",
-          readme: readme || "",
-          question,
-        }),
+        body: JSON.stringify({ repoFullName, readme }),
       });
-
-      const data = await res.json();
-      const answer = data.explanation || data.summary || "抱歉，我无法回答这个问题。";
-      setChatMessages([...newMessages, { role: "assistant", content: answer }]);
-    } catch {
-      setChatMessages([...newMessages, { role: "assistant", content: "AI 服务暂时不可用" }]);
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ error: "翻译失败" }));
+        throw new Error(data.error || "翻译失败");
+      }
+      const data = await response.json();
+      setTranslation(data.translation || "翻译失败");
+    } catch (err) {
+      setTranslation(err instanceof Error ? err.message : "翻译失败，请稍后重试");
     } finally {
-      setLoading(false);
+      setTranslating(false);
     }
   };
-
-  const tabs = [
-    { id: "explain" as const, label: "项目解读", icon: Lightbulb },
-    { id: "translate" as const, label: "翻译", icon: Languages },
-    { id: "chat" as const, label: "问答", icon: MessageSquare },
-  ];
 
   return (
-    <div
-      style={{
-        background: "rgba(255, 255, 255, 0.9)",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: "var(--radius-lg)",
-        overflow: "hidden",
-        backdropFilter: "blur(8px)",
-      }}
-    >
-      {/* Header */}
+    <div className="card overflow-hidden">
       <div
-        className="flex items-center gap-2 px-4 py-3"
-        style={{ borderBottom: "1px solid var(--border-subtle)" }}
+        className="flex items-center gap-2 px-5 py-3.5"
+        style={{ borderBottom: "1px solid var(--color-border)" }}
       >
-        <Sparkles style={{ width: 16, height: 16, color: "var(--accent-indigo)" }} />
-        <span className="text-sm font-medium" style={{ color: "var(--surface-700)" }}>
+        <Sparkles style={{ width: 16, height: 16, color: "var(--color-primary)" }} />
+        <h3 className="text-sm font-semibold" style={{ color: "var(--color-text-heading)" }}>
           AI 助手
-        </span>
+        </h3>
       </div>
 
-      {/* Tabs */}
-      <div className="flex" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-        {tabs.map((tab) => (
+      <div className="p-5">
+        {/* Tab Switch */}
+        <div className="tab-pill-container w-full mb-4">
           <button
-            key={tab.id}
-            onClick={() => {
-              setActiveTab(tab.id);
-              setResult("");
-            }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors"
-            style={{
-              color: activeTab === tab.id ? "var(--accent-indigo)" : "var(--surface-500)",
-              background: activeTab === tab.id ? "var(--accent-indigo-light)" : "transparent",
-              borderBottom: activeTab === tab.id ? "2px solid var(--accent-indigo)" : "2px solid transparent",
-            }}
+            onClick={() => setActiveTab("summary")}
+            className={`tab-pill flex-1 ${activeTab === "summary" ? "active" : ""}`}
           >
-            <tab.icon style={{ width: 13, height: 13 }} />
-            {tab.label}
+            <Sparkles style={{ width: 14, height: 14, marginRight: 4 }} />
+            摘要
           </button>
-        ))}
-      </div>
+          <button
+            onClick={() => setActiveTab("translate")}
+            className={`tab-pill flex-1 ${activeTab === "translate" ? "active" : ""}`}
+          >
+            <Languages style={{ width: 14, height: 14, marginRight: 4 }} />
+            翻译
+          </button>
+        </div>
 
-      {/* Content */}
-      <div className="p-4">
-        {activeTab === "explain" && (
-          <div>
-            <p className="text-xs mb-3" style={{ color: "var(--surface-500)" }}>
-              获取该项目的 AI 深度解读
-            </p>
-            <button
-              onClick={() => handleAction("explain")}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-colors"
-              style={{
-                background: "var(--accent-indigo)",
-                color: "white",
-                opacity: loading ? 0.7 : 1,
-              }}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
-              {loading ? "分析中..." : "解读项目"}
-            </button>
-          </div>
+        {activeTab === "summary" && (
+          <>
+            {summary ? (
+              <div className="max-h-80 overflow-y-auto">
+                <MarkdownContent content={summary} />
+                <button
+                  onClick={() => {
+                    setSummary("");
+                    generateSummary();
+                  }}
+                  disabled={loading}
+                  className="btn-ghost w-full justify-center mt-3 text-xs"
+                >
+                  {loading ? (
+                    <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />
+                  ) : (
+                    <RotateCcw style={{ width: 14, height: 14 }} />
+                  )}
+                  重新生成
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={generateSummary}
+                disabled={loading}
+                className="btn-primary w-full justify-center"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" />
+                    生成中...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles style={{ width: 16, height: 16 }} />
+                    生成 AI 摘要
+                  </>
+                )}
+              </button>
+            )}
+          </>
         )}
 
         {activeTab === "translate" && (
-          <div>
-            <p className="text-xs mb-3" style={{ color: "var(--surface-500)" }}>
-              将 README 翻译为中文
-            </p>
-            <button
-              onClick={() => handleAction("translate")}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-colors"
-              style={{
-                background: "var(--accent-indigo)",
-                color: "white",
-                opacity: loading ? 0.7 : 1,
-              }}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
-              {loading ? "翻译中..." : "翻译 README"}
-            </button>
-          </div>
-        )}
-
-        {activeTab === "chat" && (
-          <div>
-            <p className="text-xs mb-3" style={{ color: "var(--surface-500)" }}>
-              向 AI 询问关于该项目的问题
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleChatSubmit()}
-                placeholder="输入问题..."
-                className="flex-1 text-sm px-3 py-2 rounded-md outline-none"
-                style={{
-                  background: "rgba(250, 250, 250, 0.7)",
-                  border: "1px solid var(--border-default)",
-                  color: "var(--surface-900)",
-                }}
-              />
+          <>
+            {translation ? (
+              <div className="max-h-80 overflow-y-auto">
+                <MarkdownContent content={translation} />
+                <button
+                  onClick={() => {
+                    setTranslation("");
+                    translateReadme();
+                  }}
+                  disabled={translating}
+                  className="btn-ghost w-full justify-center mt-3 text-xs"
+                >
+                  {translating ? (
+                    <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />
+                  ) : (
+                    <RotateCcw style={{ width: 14, height: 14 }} />
+                  )}
+                  重新翻译
+                </button>
+              </div>
+            ) : (
               <button
-                onClick={handleChatSubmit}
-                disabled={loading || !chatInput.trim()}
-                className="px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-1"
-                style={{
-                  background: chatInput.trim() ? "var(--accent-indigo)" : "var(--surface-200)",
-                  color: chatInput.trim() ? "white" : "var(--surface-400)",
-                  cursor: chatInput.trim() ? "pointer" : "not-allowed",
-                }}
+                onClick={translateReadme}
+                disabled={translating || !readme}
+                className="btn-primary w-full justify-center"
               >
-                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                {translating ? (
+                  <>
+                    <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" />
+                    翻译中...
+                  </>
+                ) : (
+                  <>
+                    <Languages style={{ width: 16, height: 16 }} />
+                    {readme ? "翻译 README" : "暂无 README"}
+                  </>
+                )}
               </button>
-            </div>
-          </div>
-        )}
-
-        {/* Result for explain/translate */}
-        {result && activeTab !== "chat" && (
-          <div
-            className="mt-3 p-3 rounded-md text-sm leading-relaxed"
-            style={{
-              background: "rgba(250, 250, 250, 0.7)",
-              border: "1px solid var(--border-subtle)",
-              color: "var(--surface-700)",
-            }}
-          >
-            {result}
-          </div>
-        )}
-
-        {/* Chat messages */}
-        {activeTab === "chat" && chatMessages.length > 0 && (
-          <div className="mt-3 space-y-3 max-h-64 overflow-y-auto">
-            {chatMessages.map((msg, index) => (
-              <div
-                key={index}
-                className="p-3 rounded-md text-sm leading-relaxed"
-                style={{
-                  background: msg.role === "user" ? "var(--accent-indigo-light)" : "rgba(250, 250, 250, 0.7)",
-                  border: "1px solid var(--border-subtle)",
-                  color: "var(--surface-700)",
-                }}
-              >
-                <span className="text-xs font-medium block mb-1" style={{ color: msg.role === "user" ? "var(--accent-indigo)" : "var(--surface-500)" }}>
-                  {msg.role === "user" ? "你" : "AI"}
-                </span>
-                {msg.content}
-              </div>
-            ))}
-            {loading && (
-              <div className="flex items-center gap-2 p-3" style={{ color: "var(--surface-400)" }}>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span className="text-xs">思考中...</span>
-              </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { getCache, setCache } from "@/lib/cache";
 import { getTrendingRepos as fetchTrendingRepos } from "@/lib/github";
 import type { TrendingRepo } from "@/types";
+import { createHash } from "crypto";
 
 function calculateTrendScore(repo: {
   stargazers_count: number;
@@ -14,13 +15,17 @@ function calculateTrendScore(repo: {
 
 export async function getTrendingRepos(
   period: "daily" | "weekly" | "monthly" = "daily",
-  language?: string
+  language?: string,
+  token?: string
 ): Promise<TrendingRepo[]> {
-  const cacheKey = `trending:${period}:${language ?? "all"}`;
+  const tokenScope = token
+    ? createHash("sha256").update(token).digest("hex").slice(0, 16)
+    : "public";
+  const cacheKey = `trending:${tokenScope}:${period}:${language ?? "all"}`;
   const cached = await getCache<TrendingRepo[]>(cacheKey);
   if (cached) return cached;
 
-  const repos = await fetchTrendingRepos(period, language);
+  const repos = await fetchTrendingRepos(period, language, token);
 
   const trending: TrendingRepo[] = repos.map((repo, index) => ({
     full_name: repo.full_name,
@@ -44,6 +49,8 @@ export async function getTrendingRepos(
     trend_score: calculateTrendScore(repo),
   }));
 
-  await setCache(cacheKey, trending, 3600);
+  const TRENDING_CACHE_TTL_SECONDS = 3600;
+
+  await setCache(cacheKey, trending, TRENDING_CACHE_TTL_SECONDS);
   return trending;
 }

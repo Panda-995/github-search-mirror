@@ -1,0 +1,149 @@
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
+import { getCollections, getFavorites } from "@/server/user.actions";
+import { FolderHeart, Star, ArrowLeft, ExternalLink } from "lucide-react";
+import Link from "next/link";
+
+interface CollectionPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function CollectionPage({ params }: CollectionPageProps) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const { id } = await params;
+  const userId = session.user.id;
+
+  let collection: { id: string; name: string; isPublic: boolean | null } | null = null;
+  let favorites: { id: string; repoFullName: string; repoMeta: Record<string, unknown> | null; createdAt: Date | null }[] = [];
+
+  try {
+    const collections = await getCollections(userId);
+    collection = collections.find((item: { id: string }) => item.id === id) ?? null;
+    if (collection) {
+      favorites = await getFavorites(userId, id);
+    }
+  } catch {
+    collection = null;
+  }
+
+  if (!collection) {
+    return (
+      <>
+        <Header />
+        <main className="flex-1 min-h-screen">
+          <div className="page-container py-16 text-center">
+            <FolderHeart style={{ width: 48, height: 48, color: "var(--color-text-muted)" }} className="mx-auto mb-4" />
+            <h1 className="text-lg font-semibold mb-2" style={{ color: "var(--color-text-heading)" }}>
+              收藏夹不存在
+            </h1>
+            <p className="text-sm mb-6" style={{ color: "var(--color-text-muted)" }}>
+              该收藏夹可能已被删除或你无法访问
+            </p>
+            <Link href="/dashboard/collections" className="btn-primary">
+              <ArrowLeft style={{ width: 14, height: 14 }} />
+              返回收藏夹列表
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Header />
+      <main className="flex-1 min-h-screen">
+        <div className="page-container py-6">
+          <div className="mb-6">
+            <Link
+              href="/dashboard/collections"
+              className="text-sm inline-flex items-center gap-1 mb-4"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              <ArrowLeft style={{ width: 14, height: 14 }} />
+              返回收藏夹列表
+            </Link>
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-xl"
+                style={{ background: "var(--color-primary-light)", color: "var(--color-primary)" }}
+              >
+                <FolderHeart style={{ width: 24, height: 24 }} />
+              </div>
+              <div>
+                <h1
+                  className="text-lg font-semibold"
+                  style={{ color: "var(--color-text-heading)" }}
+                >
+                  {collection.name}
+                </h1>
+                <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+                  {favorites.length} 个项目 · {collection.isPublic ? "公开" : "私密"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {favorites.length === 0 ? (
+            <div className="card flex flex-col items-center justify-center py-16 px-4">
+              <Star style={{ width: 32, height: 32, color: "var(--color-text-muted)" }} className="mb-4" />
+              <p className="text-base font-medium mb-1" style={{ color: "var(--color-text-heading)" }}>
+                还没有收藏项目
+              </p>
+              <p className="text-sm mb-5" style={{ color: "var(--color-text-muted)" }}>
+                去搜索并收藏你喜欢的项目吧
+              </p>
+              <Link href="/search" className="btn-primary">
+                去搜索
+                <ExternalLink style={{ width: 14, height: 14 }} />
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {favorites.map((fav) => (
+                <Link
+                  key={fav.id}
+                  href={`/repo/${fav.repoFullName}`}
+                  className="card p-4 flex items-center gap-4 group"
+                >
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                    style={{ background: "var(--color-bg-hover)" }}
+                  >
+                    <Star style={{ width: 18, height: 18, color: "var(--color-primary)" }} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3
+                      className="font-medium text-sm"
+                      style={{ color: "var(--color-text-heading)" }}
+                    >
+                      {fav.repoFullName}
+                    </h3>
+                    {fav.repoMeta && typeof fav.repoMeta === "object" && "description" in fav.repoMeta && (
+                      <p className="text-xs mt-0.5 truncate" style={{ color: "var(--color-text-muted)" }}>
+                        {String(fav.repoMeta.description)}
+                      </p>
+                    )}
+                  </div>
+                  <ExternalLink
+                    style={{ width: 14, height: 14, color: "var(--color-text-muted)" }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}

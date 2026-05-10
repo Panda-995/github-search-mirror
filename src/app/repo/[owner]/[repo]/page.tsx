@@ -3,11 +3,24 @@ import { getRepo, getRepoReadme } from "@/lib/github";
 import { ReadmeViewer } from "@/components/repo/ReadmeViewer";
 import { AIPanel } from "@/components/repo/AIPanel";
 import { CommentSection } from "@/components/repo/CommentSection";
+import { FavoriteButton } from "@/components/repo/FavoriteButton";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star, GitFork, Eye, Circle, Calendar, ExternalLink, BookOpen, AlertCircle, ChevronRight } from "lucide-react";
+import { getCurrentGitHubToken } from "@/server/github-token";
+import {
+  Star,
+  GitFork,
+  Eye,
+  Circle,
+  Calendar,
+  ExternalLink,
+  BookOpen,
+  AlertCircle,
+  ChevronRight,
+} from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface RepoPageProps {
   params: Promise<{
@@ -45,7 +58,13 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
   let error = null;
 
   try {
-    [repoData, readme] = await Promise.all([getRepo(owner, repo), getRepoReadme(owner, repo)]);
+    const token = await getCurrentGitHubToken();
+    repoData = await getRepo(owner, repo, token);
+    try {
+      readme = await getRepoReadme(owner, repo, token);
+    } catch {
+      readme = "";
+    }
   } catch (e) {
     error = e instanceof Error ? e.message : "获取项目信息失败";
   }
@@ -74,13 +93,17 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
   if (!repoData) {
     return (
       <div className="max-w-3xl mx-auto text-center py-20">
-        <BookOpen style={{ width: 40, height: 40, color: "var(--color-bg-hover)" }} className="mx-auto mb-4" />
-        <p className="text-base font-medium" style={{ color: "var(--color-text-body)" }}>项目未找到</p>
-        <p className="text-sm mt-1" style={{ color: "var(--color-text-muted)" }}>请检查项目路径是否正确</p>
-        <Link
-          href="/search"
-          className="btn-ghost inline-block mt-4"
-        >
+        <BookOpen
+          style={{ width: 40, height: 40, color: "var(--color-bg-hover)" }}
+          className="mx-auto mb-4"
+        />
+        <p className="text-base font-medium" style={{ color: "var(--color-text-body)" }}>
+          项目未找到
+        </p>
+        <p className="text-sm mt-1" style={{ color: "var(--color-text-muted)" }}>
+          请检查项目路径是否正确
+        </p>
+        <Link href="/search" className="btn-ghost inline-block mt-4">
           返回搜索
         </Link>
       </div>
@@ -102,10 +125,17 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
   return (
     <>
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1 mb-4 text-sm" style={{ color: "var(--color-text-muted)" }}>
-        <Link href="/" className="transition-colors hover:text-[var(--color-primary)]">首页</Link>
+      <nav
+        className="flex items-center gap-1 mb-4 text-sm"
+        style={{ color: "var(--color-text-muted)" }}
+      >
+        <Link href="/" className="transition-colors hover:text-[var(--color-primary)]">
+          首页
+        </Link>
         <ChevronRight style={{ width: 14, height: 14 }} />
-        <Link href="/search" className="transition-colors hover:text-[var(--color-primary)]">搜索</Link>
+        <Link href="/search" className="transition-colors hover:text-[var(--color-primary)]">
+          搜索
+        </Link>
         <ChevronRight style={{ width: 14, height: 14 }} />
         <span style={{ color: "var(--color-text-body)" }}>{repoData.name}</span>
       </nav>
@@ -129,14 +159,18 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
                     color: "var(--color-primary)",
                   }}
                 >
-                  <img
+                  <Image
                     src={repoData.owner.avatar_url}
                     alt={repoData.owner.login}
+                    width={20}
+                    height={20}
                     className="w-5 h-5 rounded-full"
                   />
                   {repoData.owner.login}
                 </a>
-                <span style={{ color: "var(--color-border)" }} className="flex-shrink-0">/</span>
+                <span style={{ color: "var(--color-border)" }} className="flex-shrink-0">
+                  /
+                </span>
                 <h1
                   className="text-lg sm:text-xl"
                   style={{
@@ -148,16 +182,28 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
                 </h1>
               </div>
 
-              {/* GitHub link - compact size, not full width */}
-              <a
-                href={repoData.html_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary flex-shrink-0"
-              >
-                <ExternalLink style={{ width: 14, height: 14 }} />
-                在 GitHub 上查看
-              </a>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Favorite Button */}
+                <FavoriteButton
+                  repoFullName={`${owner}/${repo}`}
+                  repoMeta={{
+                    name: repoData.name,
+                    owner: repoData.owner.login,
+                    description: repoData.description,
+                    stars: repoData.stargazers_count,
+                    language: repoData.language,
+                  }}
+                />
+                {/* GitHub link */}
+                <a
+                  href={repoData.html_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary"
+                >
+                  <ExternalLink style={{ width: 14, height: 14 }} />在 GitHub 上查看
+                </a>
+              </div>
             </div>
 
             {/* Row 2: Description */}
@@ -200,20 +246,32 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
         >
           <span className="flex items-center gap-1.5" style={{ color: "var(--color-text-body)" }}>
             <Star style={{ width: 15, height: 15, color: "var(--color-text-muted)" }} />
-            <span style={{ fontWeight: "var(--font-weight-semibold)" }}>{formatNumber(repoData.stargazers_count)}</span>
-            <span className="hidden sm:inline" style={{ color: "var(--color-text-muted)" }}>stars</span>
+            <span style={{ fontWeight: "var(--font-weight-semibold)" }}>
+              {formatNumber(repoData.stargazers_count)}
+            </span>
+            <span className="hidden sm:inline" style={{ color: "var(--color-text-muted)" }}>
+              stars
+            </span>
           </span>
 
           <span className="flex items-center gap-1.5" style={{ color: "var(--color-text-body)" }}>
             <GitFork style={{ width: 15, height: 15, color: "var(--color-text-muted)" }} />
-            <span style={{ fontWeight: "var(--font-weight-semibold)" }}>{formatNumber(repoData.forks_count)}</span>
-            <span className="hidden sm:inline" style={{ color: "var(--color-text-muted)" }}>forks</span>
+            <span style={{ fontWeight: "var(--font-weight-semibold)" }}>
+              {formatNumber(repoData.forks_count)}
+            </span>
+            <span className="hidden sm:inline" style={{ color: "var(--color-text-muted)" }}>
+              forks
+            </span>
           </span>
 
           <span className="flex items-center gap-1.5" style={{ color: "var(--color-text-body)" }}>
             <Eye style={{ width: 15, height: 15, color: "var(--color-text-muted)" }} />
-            <span style={{ fontWeight: "var(--font-weight-semibold)" }}>{formatNumber(repoData.watchers_count)}</span>
-            <span className="hidden sm:inline" style={{ color: "var(--color-text-muted)" }}>watchers</span>
+            <span style={{ fontWeight: "var(--font-weight-semibold)" }}>
+              {formatNumber(repoData.watchers_count)}
+            </span>
+            <span className="hidden sm:inline" style={{ color: "var(--color-text-muted)" }}>
+              watchers
+            </span>
           </span>
 
           {repoData.language && (
@@ -230,7 +288,10 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
             </span>
           )}
 
-          <span className="flex items-center gap-1.5 ml-auto" style={{ color: "var(--color-text-muted)" }}>
+          <span
+            className="flex items-center gap-1.5 ml-auto"
+            style={{ color: "var(--color-text-muted)" }}
+          >
             <Calendar style={{ width: 14, height: 14 }} />
             <span className="hidden sm:inline">更新于 </span>
             {formatDate(repoData.pushed_at)}
@@ -242,12 +303,21 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* README */}
         <div className="lg:col-span-2">
-          <ReadmeViewer content={readme} repoName={repoData.name} />
+          <ReadmeViewer
+            content={readme}
+            owner={repoData.owner.login}
+            repoName={repoData.name}
+            defaultBranch={repoData.default_branch}
+          />
         </div>
 
         {/* Sidebar */}
         <div className="space-y-4 sm:space-y-5">
-          <AIPanel repoFullName={`${owner}/${repo}`} readme={readme} />
+          <AIPanel
+            repoFullName={`${owner}/${repo}`}
+            readme={readme}
+            description={repoData.description || ""}
+          />
           <CommentSection repoFullName={`${owner}/${repo}`} />
         </div>
       </div>
@@ -290,7 +360,11 @@ export default function RepoPage({ params }: RepoPageProps) {
   );
 }
 
-async function RepoContentWrapper({ params }: { params: Promise<{ owner: string; repo: string }> }) {
+async function RepoContentWrapper({
+  params,
+}: {
+  params: Promise<{ owner: string; repo: string }>;
+}) {
   const { owner, repo } = await params;
   return <RepoContent owner={owner} repo={repo} />;
 }

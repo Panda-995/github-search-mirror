@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import Form from "next/form";
 import { useRouter } from "next/navigation";
 import { Search, X, Command } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,21 +15,51 @@ const HOT_KEYWORDS = ["react", "vue", "python", "docker", "ai", "typescript", "n
 
 export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProps) {
   const router = useRouter();
-  const [query, setQuery] = useState(initialQuery);
+  const [queryState, setQueryState] = useState(() => ({
+    initialQuery,
+    value: initialQuery,
+  }));
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  let query = queryState.value;
 
-  const handleSearch = useCallback(() => {
-    if (!query.trim()) return;
-    router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-  }, [query, router]);
+  if (queryState.initialQuery !== initialQuery) {
+    query = initialQuery;
+    setQueryState({ initialQuery, value: initialQuery });
+  }
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") handleSearch();
+  const setQuery = useCallback(
+    (value: string) => {
+      setQueryState({ initialQuery, value });
     },
-    [handleSearch]
+    [initialQuery]
   );
+
+  const handleSubmit = useCallback(
+    (event: React.FormEvent<HTMLFormElement>) => {
+      const trimmed = query.trim();
+      if (!trimmed) {
+        event.preventDefault();
+        return;
+      }
+      setIsFocused(false);
+    },
+    [query]
+  );
+
+  const goToKeyword = useCallback(
+    (keyword: string) => {
+      setQuery(keyword);
+      setIsFocused(false);
+      router.push(`/search?q=${encodeURIComponent(keyword)}`);
+    },
+    [router, setQuery]
+  );
+
+  const clearQuery = useCallback(() => {
+    setQuery("");
+    inputRef.current?.focus();
+  }, [setQuery]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -50,7 +81,9 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
   return (
     <div className="relative w-full mx-auto" style={{ maxWidth: isLarge ? 768 : 480 }}>
       {/* Search Input */}
-      <div
+      <Form
+        action="/search"
+        onSubmit={handleSubmit}
         className="relative flex items-center transition-all z-20"
         style={{
           height: isLarge ? 64 : 48,
@@ -65,25 +98,37 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
           outline: isFocused ? "4px solid rgba(79, 70, 229, 0.15)" : "none",
         }}
       >
-        {/* Left Search Icon */}
-        <Search
+        {/* Left Search Button */}
+        <button
+          type="submit"
+          aria-label="搜索"
           className="absolute left-4 flex-shrink-0"
           style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             width: isLarge ? 22 : 18,
             height: isLarge ? 22 : 18,
             color: isFocused ? "var(--color-primary)" : "var(--color-text-muted)",
             transition: "color var(--duration-fast) var(--ease-out)",
+            background: "transparent",
+            border: 0,
+            padding: 0,
+            cursor: "pointer",
           }}
-        />
+        >
+          <Search style={{ width: "100%", height: "100%" }} />
+        </button>
 
         <input
           ref={inputRef}
           type="text"
+          name="q"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-          onKeyDown={handleKeyDown}
+          enterKeyHint="search"
           placeholder="搜索 GitHub 项目..."
           className="w-full h-full bg-transparent outline-none"
           style={{
@@ -117,17 +162,16 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
         )}
         {query && (
           <button
-            onClick={() => {
-              setQuery("");
-              inputRef.current?.focus();
-            }}
+            type="button"
+            onClick={clearQuery}
+            aria-label="清空搜索"
             className="icon-btn absolute right-2"
             style={{ width: 32, height: 32 }}
           >
             <X style={{ width: 14, height: 14 }} />
           </button>
         )}
-      </div>
+      </Form>
 
       {/* Dropdown - Hot Search Tags */}
       <AnimatePresence>
@@ -162,10 +206,8 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
                 {HOT_KEYWORDS.map((keyword) => (
                   <button
                     key={keyword}
-                    onClick={() => {
-                      setQuery(keyword);
-                      router.push(`/search?q=${encodeURIComponent(keyword)}`);
-                    }}
+                    type="button"
+                    onClick={() => goToKeyword(keyword)}
                     className="tag"
                   >
                     {keyword}

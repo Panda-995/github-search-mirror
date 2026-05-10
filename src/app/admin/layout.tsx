@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import Link from "next/link";
-import { BarChart3, Users, MessageSquare, Settings } from "lucide-react";
+import { BarChart3, Users, MessageSquare } from "lucide-react";
 
 const adminNav = [
   { href: "/admin/analytics", label: "数据统计", icon: BarChart3 },
@@ -12,15 +12,15 @@ const adminNav = [
   { href: "/admin/comments", label: "评论审核", icon: MessageSquare },
 ];
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
 
   if (!session) {
     redirect("/login");
+  }
+
+  if (session.user?.role !== "ADMIN") {
+    redirect("/dashboard");
   }
 
   return (
@@ -41,7 +41,10 @@ export default async function AdminLayout({
                 }}
               >
                 <div className="px-4 py-2 mb-1">
-                  <span className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--surface-400)" }}>
+                  <span
+                    className="text-xs font-medium uppercase tracking-wider"
+                    style={{ color: "var(--surface-400)" }}
+                  >
                     管理后台
                   </span>
                 </div>

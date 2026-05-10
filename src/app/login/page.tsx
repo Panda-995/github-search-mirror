@@ -1,13 +1,34 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { GitBranch, Sparkles, AlertCircle, Mail, Lock, UserPlus, LogIn } from "lucide-react";
 
+function InlineError({ message }: { message: string | null }) {
+  if (!message) return null;
+
+  return (
+    <div
+      role="alert"
+      aria-live="polite"
+      className="flex items-start gap-2 rounded-lg p-3 text-xs"
+      style={{
+        background: "#FEF2F2",
+        border: "1px solid #FECACA",
+        color: "var(--color-error)",
+      }}
+    >
+      <AlertCircle style={{ width: 14, height: 14 }} className="flex-shrink-0 mt-0.5" />
+      <span>{message}</span>
+    </div>
+  );
+}
+
 export default function LoginPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -15,37 +36,111 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const errorMessages: Record<string, string> = {
     OAuthSignin: "GitHub OAuth 配置错误，请检查环境变量",
     OAuthCallback: "GitHub 授权回调失败",
     OAuthCreateAccount: "创建账户失败",
     EmailSignin: "邮箱登录失败",
+    CredentialsSignin: "邮箱或密码不正确",
     Callback: "回调处理失败",
     Default: "登录过程中发生错误",
   };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signIn("credentials", {
-      email,
-      password,
-      callbackUrl: "/dashboard",
-    });
+    setFormError(null);
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      setFormError("请输入邮箱和密码");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await signIn("credentials", {
+        email: trimmedEmail,
+        password,
+        mode: "login",
+        callbackUrl: "/dashboard",
+        redirect: false,
+      });
+
+      if (result?.ok) {
+        router.push(result.url ?? "/dashboard");
+        router.refresh();
+        return;
+      }
+
+      setFormError("邮箱或密码不正确");
+    } catch {
+      setFormError("登录请求失败，请稍后重试");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      alert("两次输入的密码不一致");
+    setFormError(null);
+
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    if (!trimmedName) {
+      setFormError("请输入用户名");
       return;
     }
-    await signIn("credentials", {
-      email,
-      password,
-      callbackUrl: "/dashboard",
-    });
+    if (!trimmedEmail) {
+      setFormError("请输入邮箱地址");
+      return;
+    }
+    if (!password || !confirmPassword) {
+      setFormError("请输入并确认密码");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setFormError("两次输入的密码不一致");
+      return;
+    }
+    if (password.length < 8) {
+      setFormError("密码至少需要 8 位");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const result = await signIn("credentials", {
+        email: trimmedEmail,
+        password,
+        name: trimmedName,
+        mode: "register",
+        callbackUrl: "/dashboard",
+        redirect: false,
+      });
+
+      if (result?.ok) {
+        router.push(result.url ?? "/dashboard");
+        router.refresh();
+        return;
+      }
+
+      setFormError("注册失败，请确认邮箱未注册且数据库服务可用");
+    } catch {
+      setFormError("注册请求失败，请稍后重试");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const switchMode = (nextMode: "login" | "register") => {
+    setMode(nextMode);
+    setFormError(null);
+  };
+
+  const routeError =
+    mode === "login" && error ? errorMessages[error] || errorMessages.Default : null;
 
   return (
     <>
@@ -70,16 +165,13 @@ export default function LoginPage() {
               >
                 {mode === "login" ? "登录到 GitMirror" : "注册 GitMirror 账号"}
               </h1>
-              <p
-                className="text-sm mt-1"
-                style={{ color: "var(--color-text-body)" }}
-              >
+              <p className="text-sm mt-1" style={{ color: "var(--color-text-body)" }}>
                 {mode === "login" ? "选择登录方式" : "创建你的账号"}
               </p>
             </div>
 
             {/* Error message */}
-            {error && (
+            {routeError && (
               <div
                 className="card flex items-start gap-2 p-3 mb-5"
                 style={{
@@ -89,14 +181,13 @@ export default function LoginPage() {
                 }}
               >
                 <AlertCircle style={{ width: 14, height: 14 }} className="flex-shrink-0 mt-0.5" />
-                <p className="text-xs">
-                  {errorMessages[error] || errorMessages.Default}
-                </p>
+                <p className="text-xs">{routeError}</p>
               </div>
             )}
 
             {/* GitHub Login */}
             <button
+              type="button"
               onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
               className="btn-primary w-full justify-center"
               style={{ marginBottom: 24 }}
@@ -117,14 +208,16 @@ export default function LoginPage() {
             {/* Mode Toggle */}
             <div className="tab-pill-container w-full mb-5">
               <button
-                onClick={() => setMode("login")}
+                type="button"
+                onClick={() => switchMode("login")}
                 className={`tab-pill flex-1 ${mode === "login" ? "active" : ""}`}
               >
                 <LogIn style={{ width: 16, height: 16, marginRight: 4 }} />
                 登录
               </button>
               <button
-                onClick={() => setMode("register")}
+                type="button"
+                onClick={() => switchMode("register")}
                 className={`tab-pill flex-1 ${mode === "register" ? "active" : ""}`}
               >
                 <UserPlus style={{ width: 16, height: 16, marginRight: 4 }} />
@@ -134,7 +227,7 @@ export default function LoginPage() {
 
             {/* Form */}
             {mode === "login" ? (
-              <form onSubmit={handleEmailLogin} className="space-y-4">
+              <form onSubmit={handleEmailLogin} className="space-y-4" noValidate>
                 <div>
                   <label
                     className="text-xs font-medium block mb-1.5"
@@ -181,13 +274,18 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
-                <button type="submit" className="btn-primary w-full justify-center">
+                <InlineError message={formError} />
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="btn-primary w-full justify-center"
+                >
                   <LogIn style={{ width: 16, height: 16 }} />
-                  登录
+                  {isSubmitting ? "登录中..." : "登录"}
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleRegister} className="space-y-4">
+              <form onSubmit={handleRegister} className="space-y-4" noValidate>
                 <div>
                   <label
                     className="text-xs font-medium block mb-1.5"
@@ -280,9 +378,14 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
-                <button type="submit" className="btn-primary w-full justify-center">
+                <InlineError message={formError} />
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="btn-primary w-full justify-center"
+                >
                   <UserPlus style={{ width: 16, height: 16 }} />
-                  注册
+                  {isSubmitting ? "注册中..." : "注册"}
                 </button>
               </form>
             )}

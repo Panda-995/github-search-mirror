@@ -9,6 +9,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", ["USER", "ADMIN"]);
 
@@ -16,10 +17,12 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   githubId: varchar("github_id", { length: 255 }).unique(),
   githubToken: text("github_token"),
+  passwordHash: text("password_hash"),
   email: varchar("email", { length: 255 }).unique(),
   name: varchar("name", { length: 255 }),
   avatar: text("avatar"),
   role: userRoleEnum("role").default("USER"),
+  aiConfig: jsonb("ai_config"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -75,7 +78,9 @@ export const comments = pgTable("comments", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  parentId: uuid("parent_id"),
+  parentId: uuid("parent_id").references((): AnyPgColumn => comments.id, {
+    onDelete: "cascade",
+  }),
   isPinned: boolean("is_pinned").default(false),
   isDeleted: boolean("is_deleted").default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

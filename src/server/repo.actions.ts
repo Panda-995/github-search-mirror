@@ -3,6 +3,7 @@
 import { getCache, setCache } from "@/lib/cache";
 import { getRepo, getRepoReadme, getRepoLanguages } from "@/lib/github";
 import type { RepoItem } from "@/types";
+import { createHash } from "crypto";
 
 interface RepoDetail extends RepoItem {
   readme: string;
@@ -11,16 +12,20 @@ interface RepoDetail extends RepoItem {
 
 export async function getRepoDetail(
   owner: string,
-  repo: string
+  repo: string,
+  token?: string
 ): Promise<RepoDetail> {
-  const cacheKey = `repo:${owner}/${repo}`;
+  const tokenScope = token
+    ? createHash("sha256").update(token).digest("hex").slice(0, 16)
+    : "public";
+  const cacheKey = `repo:${tokenScope}:${owner}/${repo}`;
   const cached = await getCache<RepoDetail>(cacheKey);
   if (cached) return cached;
 
   const [repoData, readme, languages] = await Promise.all([
-    getRepo(owner, repo),
-    getRepoReadme(owner, repo).catch(() => ""),
-    getRepoLanguages(owner, repo).catch(() => ({} as Record<string, number>)),
+    getRepo(owner, repo, token),
+    getRepoReadme(owner, repo, token).catch(() => ""),
+    getRepoLanguages(owner, repo, token).catch(() => ({}) as Record<string, number>),
   ]);
 
   const detail: RepoDetail = {

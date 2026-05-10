@@ -1,17 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "GitMirror - GitHub 搜索镜像站",
@@ -24,10 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="zh-CN"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full flex flex-col relative">
         {/* Global background image */}
         <div
@@ -48,9 +34,7 @@ export default function RootLayout({
         />
         {/* Content wrapper */}
         <SessionProvider>
-          <div className="relative z-10 flex flex-col flex-1">
-            {children}
-          </div>
+          <div className="relative z-10 flex flex-col flex-1">{children}</div>
         </SessionProvider>
       </body>
     </html>

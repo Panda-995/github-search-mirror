@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { callAI, translateReadme, explainProject, naturalLanguageToQuery, explainCode } from "@/lib/ai";
+import {
+  callAI,
+  translateReadme,
+  explainProject,
+  naturalLanguageToQuery,
+  explainCode,
+} from "@/lib/ai";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -9,8 +15,9 @@ describe("AI Provider Config", () => {
     const originalKey = process.env.ANTHROPIC_API_KEY;
     process.env.ANTHROPIC_API_KEY = "";
 
-    await expect(callAI("claude", { messages: [{ role: "user", content: "test" }] }))
-      .rejects.toThrow("ANTHROPIC_API_KEY is required for Claude provider");
+    await expect(
+      callAI("claude", { messages: [{ role: "user", content: "test" }] })
+    ).rejects.toThrow("ANTHROPIC_API_KEY is required for Claude provider");
 
     process.env.ANTHROPIC_API_KEY = originalKey;
   });
@@ -19,8 +26,9 @@ describe("AI Provider Config", () => {
     const originalKey = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = "";
 
-    await expect(callAI("openai", { messages: [{ role: "user", content: "test" }] }))
-      .rejects.toThrow("OPENAI_API_KEY is required for OpenAI provider");
+    await expect(
+      callAI("openai", { messages: [{ role: "user", content: "test" }] })
+    ).rejects.toThrow("OPENAI_API_KEY is required for OpenAI provider");
 
     process.env.OPENAI_API_KEY = originalKey;
   });
@@ -29,8 +37,9 @@ describe("AI Provider Config", () => {
     const originalKey = process.env.DEEPSEEK_API_KEY;
     process.env.DEEPSEEK_API_KEY = "";
 
-    await expect(callAI("deepseek", { messages: [{ role: "user", content: "test" }] }))
-      .rejects.toThrow("DEEPSEEK_API_KEY is required for DeepSeek provider");
+    await expect(
+      callAI("deepseek", { messages: [{ role: "user", content: "test" }] })
+    ).rejects.toThrow("DEEPSEEK_API_KEY is required for DeepSeek provider");
 
     process.env.DEEPSEEK_API_KEY = originalKey;
   });
@@ -41,8 +50,9 @@ describe("AI Provider Config", () => {
     process.env.CUSTOM_AI_BASE_URL = "";
     process.env.CUSTOM_AI_API_KEY = "test";
 
-    await expect(callAI("custom", { messages: [{ role: "user", content: "test" }] }))
-      .rejects.toThrow("CUSTOM_AI_BASE_URL is required for custom provider");
+    await expect(
+      callAI("custom", { messages: [{ role: "user", content: "test" }] })
+    ).rejects.toThrow("CUSTOM_AI_BASE_URL is required for custom provider");
 
     process.env.CUSTOM_AI_BASE_URL = originalUrl;
     process.env.CUSTOM_AI_API_KEY = originalKey;
@@ -73,7 +83,7 @@ describe("callAI", () => {
         method: "POST",
         headers: expect.objectContaining({
           "Content-Type": "application/json",
-          Authorization: expect.stringContaining("Bearer"),
+          "x-api-key": expect.any(String),
           "anthropic-version": "2023-06-01",
         }),
       })
@@ -136,7 +146,11 @@ describe("explainProject", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        content: [{ text: '{"summary": "A React framework", "techStack": ["React", "TypeScript"], "difficulty": "Intermediate", "alternatives": ["Vue", "Angular"]}' }],
+        content: [
+          {
+            text: '{"summary": "A React framework", "techStack": ["React", "TypeScript"], "difficulty": "Intermediate", "alternatives": ["Vue", "Angular"]}',
+          },
+        ],
         usage: { input_tokens: 50, output_tokens: 30 },
       }),
     });

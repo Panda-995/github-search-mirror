@@ -5,11 +5,11 @@ declare module "next-auth" {
     user: {
       id: string;
       githubId: string;
+      role: "USER" | "ADMIN";
       name?: string | null;
       email?: string | null;
       image?: string | null;
     };
-    accessToken?: string;
   }
 
   interface Profile {

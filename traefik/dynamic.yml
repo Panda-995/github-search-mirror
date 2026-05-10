@@ -1,6 +1,11 @@
 http:
   routers:
-    app:
+    app-http:
+      rule: "Host(`localhost`)"
+      service: app
+      entryPoints:
+        - web
+    app-https:
       rule: "Host(`localhost`)"
       service: app
       entryPoints:

@@ -4,21 +4,31 @@ import { authOptions } from "@/lib/auth";
 import { getSearchHistory, clearSearchHistory } from "@/server/history.actions";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const history = await getSearchHistory(session.user.id);
-  return NextResponse.json({ history });
+    const history = await getSearchHistory(session.user.id);
+    return NextResponse.json({ history });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "获取历史记录失败";
+    return NextResponse.json({ error: message, history: [] }, { status: 500 });
+  }
 }
 
 export async function DELETE() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  await clearSearchHistory(session.user.id);
-  return NextResponse.json({ success: true });
+    await clearSearchHistory(session.user.id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "清除历史记录失败";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

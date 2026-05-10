@@ -12,45 +12,45 @@
 
 :root {
   /* Primary Brand Colors - Indigo-600 */
-  --color-primary: #4F46E5;
-  --color-primary-hover: #4338CA;
-  --color-primary-active: #3730A3;
-  --color-primary-disabled: #C7D2FE;
-  --color-primary-light: #EEF2FF;
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-primary-active: #3730a3;
+  --color-primary-disabled: #c7d2fe;
+  --color-primary-light: #eef2ff;
   --color-primary-alpha-8: rgba(79, 70, 229, 0.08);
-  --color-primary-alpha-10: rgba(79, 70, 229, 0.10);
+  --color-primary-alpha-10: rgba(79, 70, 229, 0.1);
 
   /* Functional Colors */
-  --color-search: #3B82F6;
-  --color-ai: #8B5CF6;
-  --color-trending: #F59E0B;
-  --color-success: #10B981;
-  --color-error: #EF4444;
-  --color-error-light: #FEE2E2;
+  --color-search: #3b82f6;
+  --color-ai: #8b5cf6;
+  --color-trending: #f59e0b;
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-error-light: #fee2e2;
 
   /* Neutral Colors - Slate */
-  --color-bg-page: #F8FAFC;
-  --color-bg-card: #FFFFFF;
-  --color-bg-sidebar: #F1F5F9;
-  --color-bg-hover: #F1F5F9;
-  --color-border: #E2E8F0;
-  --color-border-focus: #4F46E5;
-  --color-text-heading: #0F172A;
+  --color-bg-page: #f8fafc;
+  --color-bg-card: #ffffff;
+  --color-bg-sidebar: #f1f5f9;
+  --color-bg-hover: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-border-focus: #4f46e5;
+  --color-text-heading: #0f172a;
   --color-text-body: #475569;
-  --color-text-muted: #94A3B8;
+  --color-text-muted: #94a3b8;
 
   /* Legacy aliases */
   --surface-0: var(--color-bg-card);
-  --surface-50: #F8FAFC;
-  --surface-100: #F1F5F9;
-  --surface-200: #E2E8F0;
-  --surface-300: #CBD5E1;
-  --surface-400: #94A3B8;
-  --surface-500: #64748B;
+  --surface-50: #f8fafc;
+  --surface-100: #f1f5f9;
+  --surface-200: #e2e8f0;
+  --surface-300: #cbd5e1;
+  --surface-400: #94a3b8;
+  --surface-500: #64748b;
   --surface-600: #475569;
   --surface-700: #334155;
-  --surface-800: #1E293B;
-  --surface-900: #0F172A;
+  --surface-800: #1e293b;
+  --surface-900: #0f172a;
   --accent-indigo: var(--color-primary);
   --accent-indigo-hover: var(--color-primary-hover);
   --accent-indigo-light: var(--color-primary-light);
@@ -61,8 +61,8 @@
   --color-text-tertiary: var(--color-text-muted);
 
   /* Typography */
-  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-family-code: Consolas, Monaco, 'Courier New', monospace;
+  --font-family-base: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family-code: Consolas, Monaco, "Courier New", monospace;
 
   /* Font Sizes */
   --font-size-h1: 48px;
@@ -113,7 +113,7 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
   --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
-  --shadow-focus: 0 0 0 2px #FFFFFF, 0 0 0 4px #4F46E5;
+  --shadow-focus: 0 0 0 2px #ffffff, 0 0 0 4px #4f46e5;
 
   /* Animation */
   --duration-fast: 150ms;
@@ -131,7 +131,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-family-code);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -240,7 +240,7 @@ body {
   justify-content: center;
   gap: var(--spacing-2);
   background: var(--color-primary);
-  color: #FFFFFF;
+  color: #ffffff;
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
   padding: 10px var(--spacing-5);
@@ -416,7 +416,7 @@ body {
 }
 
 .sidebar-nav-item.active::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 50%;
@@ -441,18 +441,18 @@ body {
 }
 
 .rank-badge-1 {
-  background: #FEF3C7;
-  color: #D97706;
+  background: #fef3c7;
+  color: #d97706;
 }
 
 .rank-badge-2 {
-  background: #F1F5F9;
-  color: #64748B;
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .rank-badge-3 {
-  background: #FFEDD5;
-  color: #C2410C;
+  background: #ffedd5;
+  color: #c2410c;
 }
 
 .rank-badge-other {
@@ -532,7 +532,7 @@ body {
 
 .tab-block.active {
   background: var(--color-primary);
-  color: #FFFFFF;
+  color: #ffffff;
   border-color: var(--color-primary);
 }
 
@@ -563,19 +563,34 @@ body {
 
 /* ===== Animations ===== */
 @keyframes skeleton {
-  0% { background-position: -200px 0; }
-  100% { background-position: calc(200px + 100%) 0; }
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--surface-200) 25%, var(--surface-300) 50%, var(--surface-200) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--surface-200) 25%,
+    var(--surface-300) 50%,
+    var(--surface-200) 75%
+  );
   background-size: 200px 100%;
   animation: skeleton 1.5s var(--ease-out) infinite;
 }
 
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-page-enter {

@@ -1,29 +1,84 @@
 import { NextRequest, NextResponse } from "next/server";
 import { explainProject } from "@/lib/ai";
+import { getUserAIConfig } from "@/lib/ai-config";
 import { getCache, setCache } from "@/lib/cache";
+import { stableHash } from "@/lib/stable-hash";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { jsonError, readJsonBody } from "@/lib/api-guard";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const AI_EXPLAIN_CACHE_TTL_SECONDS = 86400;
+const AI_BODY_MAX_BYTES = 120_000;
+const AI_README_MAX_CHARS = 60_000;
+const AI_RATE_LIMIT_WINDOW_MS = 60_000;
+const AI_RATE_LIMIT_REQUESTS = 20;
+const AI_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function getDailyQuota() {
+  const value = Number(process.env.AI_DAILY_QUOTA_FREE ?? 200);
+  return Number.isFinite(value) ? Math.min(Math.max(Math.trunc(value), 1), 1000) : 200;
+}
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { repoName, description, readme } = body;
-
-  if (!repoName) {
-    return NextResponse.json({ error: "repoName is required" }, { status: 400 });
-  }
-
-  const cacheKey = `ai:explain:${repoName}`;
-  const cached = await getCache<Record<string, unknown>>(cacheKey);
-  if (cached) {
-    return NextResponse.json(cached);
-  }
-
   try {
-    const result = await explainProject(repoName, description ?? "", readme ?? "");
-    await setCache(cacheKey, result, 86400);
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = checkRateLimit(`ai:explain:${session.user.id}`, {
+      limit: AI_RATE_LIMIT_REQUESTS,
+      windowMs: AI_RATE_LIMIT_WINDOW_MS,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: "Too many AI requests" }, { status: 429 });
+    }
+    const dailyLimit = checkRateLimit(`ai:daily:${session.user.id}`, {
+      limit: getDailyQuota(),
+      windowMs: AI_DAILY_WINDOW_MS,
+    });
+    if (!dailyLimit.allowed) {
+      return NextResponse.json({ error: "AI daily quota exceeded" }, { status: 429 });
+    }
+
+    const body = await readJsonBody<Record<string, unknown>>(request, AI_BODY_MAX_BYTES);
+    const { repoName, description, readme } = body;
+
+    if (!repoName || typeof repoName !== "string") {
+      return NextResponse.json({ error: "repoName is required" }, { status: 400 });
+    }
+    if (typeof readme === "string" && readme.length > AI_README_MAX_CHARS) {
+      return NextResponse.json({ error: "README content is too large" }, { status: 413 });
+    }
+
+    const { provider, customConfig } = await getUserAIConfig();
+    const cacheKey = `ai:explain:${stableHash({
+      userId: session.user.id,
+      provider,
+      model: customConfig?.model,
+      apiEndpoint: customConfig?.apiEndpoint,
+      repoName,
+      description: description ?? "",
+      readme: readme ?? "",
+    })}`;
+    const cached = await getCache<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
+    const result = await explainProject(
+      repoName as string,
+      (description as string) ?? "",
+      (readme as string) ?? "",
+      provider,
+      customConfig
+    );
+
+    await setCache(cacheKey, result, AI_EXPLAIN_CACHE_TTL_SECONDS);
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Explanation failed" },
-      { status: 500 }
-    );
+    const { message, status } = jsonError(error, "Explanation failed");
+    return NextResponse.json({ error: message }, { status });
   }
 }

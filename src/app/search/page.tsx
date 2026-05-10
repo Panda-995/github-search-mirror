@@ -1,49 +1,116 @@
 import { Suspense } from "react";
 import { searchRepositories } from "@/server/search.actions";
+import { saveSearchHistory } from "@/server/history.actions";
 import { SearchBox } from "@/components/search/SearchBox";
 import { FilterPanel } from "@/components/search/FilterPanel";
 import { RepoList } from "@/components/search/RepoList";
 import { SortSelect } from "@/components/search/SortSelect";
+import { parseSearchQuery } from "@/lib/search-parser";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Inbox, Sparkles, Filter } from "lucide-react";
+import { Search, Inbox, Sparkles, Filter, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { getGitHubTokenForUser } from "@/server/github-token";
+import {
+  normalizeSearchQuery,
+  parseSearchOrder,
+  parseSearchPage,
+  parseSearchSort,
+  sanitizeQualifierValue,
+} from "@/lib/search-params";
+import type { SearchFilters } from "@/types";
+
+interface SearchParams {
+  q?: string;
+  language?: string;
+  stars?: string;
+  forks?: string;
+  updated?: string;
+  sort?: string;
+  order?: string;
+  page?: string;
+}
 
 interface SearchPageProps {
-  searchParams: Promise<{
-    q?: string;
-    language?: string;
-    stars?: string;
-    forks?: string;
-    updated?: string;
-    sort?: string;
-    page?: string;
-  }>;
+  searchParams: Promise<SearchParams>;
 }
 
 const HOT_KEYWORDS = ["react", "vue", "python", "docker", "ai", "typescript"];
 
-async function SearchResults({ searchParams }: SearchPageProps) {
-  const params = await searchParams;
+function parseNumericFilter(
+  value: string | undefined,
+  minKey: "stars_min" | "forks_min",
+  maxKey: "stars_max" | "forks_max",
+  filters: SearchFilters
+) {
+  if (!value) return;
+  const match = value.match(/^([<>]=?|=)?(\d+)$/);
+  if (!match) return;
+
+  const operator = match[1] || ">=";
+  const amount = Number(match[2]);
+  if (operator === "<" || operator === "<=") {
+    filters[maxKey] = amount;
+  } else {
+    filters[minKey] = amount;
+  }
+}
+
+function daysAgo(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().split("T")[0];
+}
+
+async function SearchResults({ params }: { params: SearchParams }) {
   const query = params.q || "";
-  const page = parseInt(params.page || "1", 10);
+  const normalizedQuery = normalizeSearchQuery(query);
+  const page = parseSearchPage(params.page);
+  const parsed = parseSearchQuery(normalizedQuery);
 
-  const filters: Record<string, string> = {};
-  if (params.language) filters.language = params.language;
-  if (params.stars) filters.stars = params.stars;
-  if (params.forks) filters.forks = params.forks;
-  if (params.updated) filters.updated = params.updated;
+  const filters: SearchFilters = { ...parsed.filters };
+  const language = sanitizeQualifierValue(params.language);
+  if (language) filters.language = [language];
+  parseNumericFilter(params.stars, "stars_min", "stars_max", filters);
+  parseNumericFilter(params.forks, "forks_min", "forks_max", filters);
+  if (params.updated) {
+    const match = params.updated.match(/^>(\d+)d$/);
+    if (match) filters.pushed_after = daysAgo(Number(match[1]));
+  }
 
-  const sort = (params.sort as "stars" | "forks" | "updated" | undefined) || undefined;
+  const sort = parseSearchSort(params.sort) || parsed.sort || undefined;
+  const order = parseSearchOrder(params.order) || parsed.order || undefined;
   const perPage = 20;
 
   let results = null;
   let error = null;
 
-  if (query) {
+  if (normalizedQuery) {
     try {
-      results = await searchRepositories(query, filters, { page, perPage, sort });
+      const session = await getServerSession(authOptions);
+      const token = await getGitHubTokenForUser(session?.user?.id);
+      results = await searchRepositories(
+        parsed.query,
+        filters,
+        {
+          page,
+          perPage,
+          sort,
+          order,
+        },
+        token
+      );
+      // Save search history if user is logged in
+      if (session?.user?.id) {
+        try {
+          await saveSearchHistory(session.user.id, normalizedQuery, filters);
+        } catch {
+          // Ignore history save errors
+        }
+      }
     } catch (e) {
       error = e instanceof Error ? e.message : "搜索失败";
     }
@@ -60,7 +127,16 @@ async function SearchResults({ searchParams }: SearchPageProps) {
             color: "var(--color-error)",
           }}
         >
-          <p className="text-sm">{error}</p>
+          <div className="flex items-start gap-2">
+            <AlertCircle style={{ width: 16, height: 16 }} className="flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">搜索服务暂时不可用</p>
+              <p className="text-xs mt-1 opacity-80">{error}</p>
+              <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)" }}>
+                提示：请确保已配置 GitHub Token 环境变量
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -78,19 +154,12 @@ async function SearchResults({ searchParams }: SearchPageProps) {
           >
             输入关键词开始搜索
           </p>
-          <p
-            className="text-sm mb-8"
-            style={{ color: "var(--color-text-muted)" }}
-          >
+          <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>
             探索 GitHub 上数百万个开源项目
           </p>
           <div className="flex flex-wrap gap-2 justify-center max-w-md">
             {HOT_KEYWORDS.map((keyword) => (
-              <a
-                key={keyword}
-                href={`/search?q=${encodeURIComponent(keyword)}`}
-                className="tag"
-              >
+              <a key={keyword} href={`/search?q=${encodeURIComponent(keyword)}`} className="tag">
                 {keyword}
               </a>
             ))}
@@ -122,41 +191,35 @@ async function SearchResults({ searchParams }: SearchPageProps) {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3">
           <p className="text-sm" style={{ color: "var(--color-text-body)" }}>
             找到{" "}
-            <span
-              className="font-semibold"
-              style={{ color: "var(--color-text-heading)" }}
-            >
+            <span className="font-semibold" style={{ color: "var(--color-text-heading)" }}>
               {results.total.toLocaleString()}
             </span>{" "}
             个结果
             {query && (
-              <span style={{ color: "var(--color-text-muted)" }}>
-                {" "}
-                for &quot;{query}&quot;
-              </span>
+              <span style={{ color: "var(--color-text-muted)" }}> for &quot;{query}&quot;</span>
             )}
           </p>
           <SortSelect />
         </div>
       )}
 
-      {results && results.total > 0 && <RepoList results={results} query={query} />}
+      {results && results.total > 0 && <RepoList results={results} searchParams={params} />}
     </>
   );
 }
 
-export default function SearchPage({ searchParams }: SearchPageProps) {
+export default async function SearchPage({ searchParams }: SearchPageProps) {
+  const params = await searchParams;
+
   return (
     <>
-      <Header />
+      <Header initialSearchQuery={params.q ?? ""} />
       <main className="flex-1 min-h-screen">
         <div className="page-container py-6 sm:py-8">
           {/* Search header */}
           <div className="card max-w-2xl mb-6 sm:mb-8 px-2 sm:px-0 p-4">
             <div className="flex items-center gap-2 mb-3 sm:mb-4">
-              <Search
-                style={{ width: 18, height: 18, color: "var(--color-text-muted)" }}
-              />
+              <Search style={{ width: 18, height: 18, color: "var(--color-text-muted)" }} />
               <h1
                 className="text-base sm:text-lg"
                 style={{
@@ -167,7 +230,7 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
                 搜索项目
               </h1>
             </div>
-            <SearchBox />
+            <SearchBox initialQuery={params.q ?? ""} />
           </div>
 
           <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
@@ -204,7 +267,7 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
                   </div>
                 }
               >
-                <SearchResults searchParams={searchParams} />
+                <SearchResults params={params} />
               </Suspense>
             </div>
           </div>

@@ -1,10 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { benchmark, assertPerformance } from "./benchmark";
-import { searchRepos, getRepo, getRepoReadme, getTrendingRepos } from "@/lib/github";
+import {
+  clearGitHubCache,
+  searchRepos,
+  getRepo,
+  getRepoReadme,
+  getTrendingRepos,
+} from "@/lib/github";
 
 describe("GitHub API Performance", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearGitHubCache();
   });
 
   it("searchRepos should respond within 2s", async () => {

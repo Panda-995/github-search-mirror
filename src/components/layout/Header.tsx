@@ -1,36 +1,53 @@
 "use client";
 
 import Link from "next/link";
+import Form from "next/form";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Search, TrendingUp, User, LayoutDashboard, Command, LogOut } from "lucide-react";
+import { Search, TrendingUp, User, LayoutDashboard, Command } from "lucide-react";
 import Image from "next/image";
 
-export function Header() {
-  const [searchQuery, setSearchQuery] = useState("");
+interface HeaderProps {
+  initialSearchQuery?: string;
+}
+
+export function Header({ initialSearchQuery = "" }: HeaderProps = {}) {
+  const [searchState, setSearchState] = useState(() => ({
+    initialSearchQuery,
+    value: initialSearchQuery,
+  }));
   const searchInputRef = useRef<HTMLInputElement>(null);
   const pathname = usePathname();
-  const router = useRouter();
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated";
+  let searchQuery = searchState.value;
+
+  if (searchState.initialSearchQuery !== initialSearchQuery) {
+    searchQuery = initialSearchQuery;
+    setSearchState({ initialSearchQuery, value: initialSearchQuery });
+  }
+
+  const setSearchQuery = useCallback(
+    (value: string) => {
+      setSearchState({ initialSearchQuery, value });
+    },
+    [initialSearchQuery]
+  );
 
   const navItems = [
     { href: "/search", label: "搜索", icon: Search },
     { href: "/trending", label: "趋势", icon: TrendingUp },
   ];
 
-  const handleSearch = useCallback(() => {
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  }, [searchQuery, router]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") handleSearch();
+  const handleSearchSubmit = useCallback(
+    (event: React.FormEvent<HTMLFormElement>) => {
+      const trimmed = searchQuery.trim();
+      if (!trimmed) {
+        event.preventDefault();
+      }
     },
-    [handleSearch]
+    [searchQuery]
   );
 
   useEffect(() => {
@@ -84,7 +101,9 @@ export function Header() {
 
           {/* Center Search - max 480px */}
           <div className="hidden md:flex flex-1 justify-center mx-8" style={{ maxWidth: 480 }}>
-            <div
+            <Form
+              action="/search"
+              onSubmit={handleSearchSubmit}
               className="flex items-center w-full"
               style={{
                 height: 40,
@@ -95,13 +114,32 @@ export function Header() {
                 boxShadow: "var(--shadow-sm)",
               }}
             >
-              <Search style={{ width: 16, height: 16, color: "var(--color-text-muted)", flexShrink: 0 }} />
+              <button
+                type="submit"
+                aria-label="搜索"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 16,
+                  height: 16,
+                  color: "var(--color-text-muted)",
+                  flexShrink: 0,
+                  background: "transparent",
+                  border: 0,
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              >
+                <Search style={{ width: 16, height: 16 }} />
+              </button>
               <input
                 ref={searchInputRef}
                 type="text"
+                name="q"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
+                enterKeyHint="search"
                 placeholder="搜索 GitHub 项目..."
                 className="flex-1 bg-transparent outline-none text-sm"
                 style={{ color: "var(--color-text-heading)" }}
@@ -117,10 +155,9 @@ export function Header() {
                   fontWeight: "var(--font-weight-medium)",
                 }}
               >
-                <Command style={{ width: 10, height: 10 }} />
-                K
+                <Command style={{ width: 10, height: 10 }} />K
               </kbd>
-            </div>
+            </Form>
           </div>
 
           {/* Right Nav */}
@@ -148,14 +185,19 @@ export function Header() {
             {/* Dashboard link - only show when authenticated */}
             {isAuthenticated && (
               <>
-                <div className="hidden md:block w-px h-5 mx-2" style={{ background: "var(--color-border)" }} />
+                <div
+                  className="hidden md:block w-px h-5 mx-2"
+                  style={{ background: "var(--color-border)" }}
+                />
                 <Link
                   href="/dashboard"
                   className="hidden md:flex items-center gap-1.5 rounded-lg px-3 py-2 transition-colors"
                   style={{
                     fontSize: "var(--font-size-body)",
                     fontWeight: "var(--font-weight-medium)",
-                    color: pathname.startsWith("/dashboard") ? "var(--color-primary)" : "var(--color-text-body)",
+                    color: pathname.startsWith("/dashboard")
+                      ? "var(--color-primary)"
+                      : "var(--color-text-body)",
                     background: "transparent",
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-hover)")}
@@ -168,13 +210,18 @@ export function Header() {
             )}
 
             {/* Login / User */}
-            <div className="hidden md:block w-px h-5 mx-2" style={{ background: "var(--color-border)" }} />
+            <div
+              className="hidden md:block w-px h-5 mx-2"
+              style={{ background: "var(--color-border)" }}
+            />
             {isAuthenticated ? (
               <div className="hidden md:flex items-center gap-2">
                 {session?.user?.image ? (
-                  <img
+                  <Image
                     src={session.user.image}
                     alt={session.user.name || "用户"}
+                    width={28}
+                    height={28}
                     className="w-7 h-7 rounded-full"
                   />
                 ) : (

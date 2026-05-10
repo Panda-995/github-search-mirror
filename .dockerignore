@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+.next
+.git
+.env*
+*.md
+.vscode
+.idea
+coverage
+.nyc_output
+test
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx

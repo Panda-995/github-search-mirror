@@ -18,15 +18,18 @@ export interface RepoItem {
 }
 
 export interface SearchFilters {
+  in?: ("name" | "description" | "readme")[];
   language?: string[];
   stars_min?: number;
   stars_max?: number;
   forks_min?: number;
   forks_max?: number;
-  updated_after?: string;
+  pushed_after?: string;
   created_after?: string;
   license?: string[];
   topic?: string[];
+  user?: string;
+  org?: string;
 }
 
 export interface SearchResult {

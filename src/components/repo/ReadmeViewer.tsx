@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -7,25 +9,43 @@ import { FileText, ChevronDown, ChevronUp } from "lucide-react";
 
 interface ReadmeViewerProps {
   content: string;
+  owner: string;
   repoName: string;
+  defaultBranch?: string;
 }
 
-export function ReadmeViewer({ content, repoName }: ReadmeViewerProps) {
+function isExternalUrl(url: string) {
+  return /^(https?:)?\/\//.test(url) || url.startsWith("#") || url.startsWith("mailto:");
+}
+
+export function ReadmeViewer({
+  content,
+  owner,
+  repoName,
+  defaultBranch = "HEAD",
+}: ReadmeViewerProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+
+  const resolveBlobUrl = (href?: string) => {
+    if (!href || isExternalUrl(href)) return href;
+    const normalized = href.replace(/^\.\//, "");
+    return `https://github.com/${owner}/${repoName}/blob/${defaultBranch}/${normalized}`;
+  };
+
+  const resolveRawUrl = (src?: string) => {
+    if (!src || isExternalUrl(src)) return src;
+    const normalized = src.replace(/^\.\//, "");
+    return `https://raw.githubusercontent.com/${owner}/${repoName}/${defaultBranch}/${normalized}`;
+  };
 
   if (!content) {
     return (
-      <div
-        className="p-8 text-center"
-        style={{
-          background: "rgba(255, 255, 255, 0.9)",
-          border: "1px solid var(--border-subtle)",
-          borderRadius: "var(--radius-lg)",
-          backdropFilter: "blur(8px)",
-        }}
-      >
-        <FileText className="mx-auto h-8 w-8 mb-2" style={{ color: "var(--surface-300)" }} />
-        <p className="text-sm" style={{ color: "var(--surface-400)" }}>
+      <div className="card flex flex-col items-center justify-center py-10 px-4">
+        <FileText
+          style={{ width: 32, height: 32, color: "var(--color-text-muted)" }}
+          className="mb-2"
+        />
+        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
           暂无 README
         </p>
       </div>
@@ -33,31 +53,23 @@ export function ReadmeViewer({ content, repoName }: ReadmeViewerProps) {
   }
 
   return (
-    <div
-      style={{
-        background: "rgba(255, 255, 255, 0.9)",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: "var(--radius-lg)",
-        overflow: "hidden",
-        backdropFilter: "blur(8px)",
-      }}
-    >
+    <div className="card overflow-hidden">
       {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between w-full px-5 py-3.5 text-left"
-        style={{ borderBottom: isExpanded ? "1px solid var(--border-subtle)" : "none" }}
+        style={{ borderBottom: isExpanded ? "1px solid var(--color-border)" : "none" }}
       >
         <div className="flex items-center gap-2">
-          <FileText style={{ width: 16, height: 16, color: "var(--surface-400)" }} />
-          <span className="text-sm font-semibold" style={{ color: "var(--surface-700)" }}>
+          <FileText style={{ width: 16, height: 16, color: "var(--color-text-muted)" }} />
+          <span className="text-sm font-semibold" style={{ color: "var(--color-text-heading)" }}>
             README.md
           </span>
         </div>
         {isExpanded ? (
-          <ChevronUp style={{ width: 16, height: 16, color: "var(--surface-400)" }} />
+          <ChevronUp style={{ width: 16, height: 16, color: "var(--color-text-muted)" }} />
         ) : (
-          <ChevronDown style={{ width: 16, height: 16, color: "var(--surface-400)" }} />
+          <ChevronDown style={{ width: 16, height: 16, color: "var(--color-text-muted)" }} />
         )}
       </button>
 
@@ -68,20 +80,17 @@ export function ReadmeViewer({ content, repoName }: ReadmeViewerProps) {
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                h1: ({ children }) => (
-                  <h1 className="readme-h1">{children}</h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 className="readme-h2">{children}</h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 className="readme-h3">{children}</h3>
-                ),
-                p: ({ children }) => (
-                  <p className="readme-p">{children}</p>
-                ),
+                h1: ({ children }) => <h1 className="readme-h1">{children}</h1>,
+                h2: ({ children }) => <h2 className="readme-h2">{children}</h2>,
+                h3: ({ children }) => <h3 className="readme-h3">{children}</h3>,
+                p: ({ children }) => <p className="readme-p">{children}</p>,
                 a: ({ href, children }) => (
-                  <a href={href} target="_blank" rel="noopener noreferrer" className="readme-a">
+                  <a
+                    href={resolveBlobUrl(href)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="readme-a"
+                  >
                     {children}
                   </a>
                 ),
@@ -108,7 +117,12 @@ export function ReadmeViewer({ content, repoName }: ReadmeViewerProps) {
                   </div>
                 ),
                 img: ({ src, alt }) => (
-                  <img src={src} alt={alt} className="readme-img" loading="lazy" />
+                  <img
+                    src={resolveRawUrl(typeof src === "string" ? src : undefined)}
+                    alt={alt}
+                    className="readme-img"
+                    loading="lazy"
+                  />
                 ),
                 hr: () => <hr className="readme-hr" />,
               }}

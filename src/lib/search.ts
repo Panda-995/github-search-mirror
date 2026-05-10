@@ -12,6 +12,7 @@ export async function initSearchIndex() {
     searchableAttributes: ["name", "owner", "description", "readme", "topics"],
     filterableAttributes: [
       "language",
+      "owner",
       "stars",
       "forks",
       "license",
@@ -20,14 +21,7 @@ export async function initSearchIndex() {
       "pushed_at",
     ],
     sortableAttributes: ["stars", "forks", "updated_at", "created_at"],
-    rankingRules: [
-      "words",
-      "typo",
-      "proximity",
-      "attribute",
-      "sort",
-      "exactness",
-    ],
+    rankingRules: ["words", "typo", "proximity", "attribute", "sort", "exactness"],
   });
 }
 

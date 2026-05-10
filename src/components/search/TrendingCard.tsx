@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Star, GitFork, TrendingUp, Crown } from "lucide-react";
 import type { TrendingRepo } from "@/types";
+import { formatNumber } from "@/lib/utils";
 
 interface TrendingCardProps {
   repo: TrendingRepo;
@@ -10,11 +11,6 @@ interface TrendingCardProps {
 }
 
 export function TrendingCard({ repo, rank }: TrendingCardProps) {
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-    if (num >= 1000) return (num / 1000).toFixed(1) + "k";
-    return num.toString();
-  };
 
   const getRankBadge = (rank: number) => {
     if (rank === 1) {

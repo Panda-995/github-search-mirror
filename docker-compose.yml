@@ -19,9 +19,13 @@ services:
       - AUTH_SECRET=${AUTH_SECRET}
       - AUTH_GITHUB_ID=${AUTH_GITHUB_ID}
       - AUTH_GITHUB_SECRET=${AUTH_GITHUB_SECRET}
+      - ADMIN_EMAILS=${ADMIN_EMAILS}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - MIRROR_BASE_URL=${MIRROR_BASE_URL}
     depends_on:
       db:
         condition: service_healthy
@@ -45,7 +49,7 @@ services:
     volumes:
       - meili_data:/meili_data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:7700/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -55,13 +59,20 @@ services:
   vector:
     image: qdrant/qdrant:latest
     restart: unless-stopped
-    ports:
-      - "6333:6333"
-      - "6334:6334"
+    environment:
+      - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+      - QDRANT_API_KEY=${QDRANT_API_KEY}
+    expose:
+      - "6333"
+      - "6334"
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/readyz"]
+      test:
+        [
+          "CMD-SHELL",
+          'if [ -n "$$QDRANT_API_KEY" ]; then wget -qO- --header="api-key: $$QDRANT_API_KEY" http://localhost:6333/readyz; else wget -qO- http://localhost:6333/readyz; fi',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -89,7 +100,14 @@ services:
   cache:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb
+    command: >
+      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then
+        redis-server --appendonly yes --maxmemory 256mb --requirepass "$$REDIS_PASSWORD";
+      else
+        redis-server --appendonly yes --maxmemory 256mb;
+      fi'
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     networks:

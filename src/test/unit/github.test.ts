@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { searchRepos, getRepo, getRepoReadme, getTrendingRepos } from "@/lib/github";
+import {
+  clearGitHubCache,
+  searchRepos,
+  getRepo,
+  getRepoReadme,
+  getTrendingRepos,
+} from "@/lib/github";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -7,6 +13,7 @@ global.fetch = mockFetch;
 describe("GitHub API", () => {
   beforeEach(() => {
     mockFetch.mockClear();
+    clearGitHubCache();
   });
 
   it("should search repositories with correct parameters", async () => {
@@ -38,7 +45,12 @@ describe("GitHub API", () => {
       }),
     });
 
-    const result = await searchRepos("react", { sort: "stars", order: "desc", page: 1, perPage: 20 });
+    const result = await searchRepos("react", {
+      sort: "stars",
+      order: "desc",
+      page: 1,
+      perPage: 20,
+    });
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/search/repositories?q=react"),

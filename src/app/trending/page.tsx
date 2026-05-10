@@ -6,6 +6,8 @@ import { Footer } from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, Inbox } from "lucide-react";
 import Link from "next/link";
+import { parseTrendingRange } from "@/lib/search-params";
+import { getCurrentGitHubToken } from "@/server/github-token";
 
 interface TrendingPageProps {
   searchParams: Promise<{
@@ -21,13 +23,13 @@ const RANGES = [
 
 async function TrendingResults({ searchParams }: TrendingPageProps) {
   const params = await searchParams;
-  const range = (params.range || "daily") as "daily" | "weekly" | "monthly";
+  const range = parseTrendingRange(params.range);
 
   let repos: Awaited<ReturnType<typeof getTrendingRepos>> = [];
   let error = null;
 
   try {
-    repos = await getTrendingRepos(range);
+    repos = await getTrendingRepos(range, undefined, await getCurrentGitHubToken());
   } catch (e) {
     error = e instanceof Error ? e.message : "获取趋势失败";
   }
@@ -53,9 +55,7 @@ async function TrendingResults({ searchParams }: TrendingPageProps) {
             className="flex items-center justify-center h-14 w-14 rounded-2xl mb-5"
             style={{ background: "var(--color-bg-hover)" }}
           >
-            <Inbox
-              style={{ width: 24, height: 24, color: "var(--color-text-muted)" }}
-            />
+            <Inbox style={{ width: 24, height: 24, color: "var(--color-text-muted)" }} />
           </div>
           <p
             className="text-base font-semibold mb-1"
@@ -86,9 +86,7 @@ export default function TrendingPage({ searchParams }: TrendingPageProps) {
         <div className="page-container py-6 sm:py-8">
           {/* Header */}
           <div className="flex items-center gap-2 mb-4 sm:mb-6 px-2 sm:px-0">
-            <TrendingUp
-              style={{ width: 20, height: 20, color: "var(--color-text-muted)" }}
-            />
+            <TrendingUp style={{ width: 20, height: 20, color: "var(--color-text-muted)" }} />
             <h1
               className="text-base sm:text-lg"
               style={{
@@ -152,14 +150,11 @@ async function TabLink({
   searchParams: Promise<{ range?: string }>;
 }) {
   const params = await searchParams;
-  const currentRange = params.range || "daily";
+  const currentRange = parseTrendingRange(params.range);
   const isActive = currentRange === range;
 
   return (
-    <Link
-      href={`/trending?range=${range}`}
-      className={`tab-pill ${isActive ? "active" : ""}`}
-    >
+    <Link href={`/trending?range=${range}`} className={`tab-pill ${isActive ? "active" : ""}`}>
       {label}
     </Link>
   );

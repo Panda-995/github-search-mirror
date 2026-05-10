@@ -16,22 +16,33 @@ export function CollectionCard({ collection }: CollectionCardProps) {
   return (
     <Link
       href={`/collection/${collection.id}`}
-      className="flex items-start gap-4 rounded-lg border bg-card p-5 shadow-sm transition-all hover:shadow-md"
+      className="card flex items-start gap-4 p-5 group"
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-        <FolderHeart className="h-5 w-5" />
+      <div
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+        style={{ background: "var(--color-primary-light)", color: "var(--color-primary)" }}
+      >
+        <FolderHeart style={{ width: 20, height: 20 }} />
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold">{collection.name}</h3>
+          <h3
+            className="font-semibold"
+            style={{ color: "var(--color-text-heading)" }}
+          >
+            {collection.name}
+          </h3>
           {collection.isPublic ? (
-            <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+            <Globe style={{ width: 14, height: 14, color: "var(--color-text-muted)" }} />
           ) : (
-            <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+            <Lock style={{ width: 14, height: 14, color: "var(--color-text-muted)" }} />
           )}
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p
+          className="mt-1 text-sm"
+          style={{ color: "var(--color-text-muted)" }}
+        >
           {collection.count} 个项目
         </p>
       </div>

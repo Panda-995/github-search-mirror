@@ -18,22 +18,28 @@ export function AIProviderSelect() {
 
   return (
     <div>
-      <label className="text-xs font-medium block mb-2" style={{ color: "var(--surface-500)" }}>
+      <label
+        className="text-xs font-medium block mb-2"
+        style={{ color: "var(--color-text-body)" }}
+      >
         默认 AI 提供商
       </label>
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between text-sm px-3 py-2.5 rounded-md transition-colors"
+          className="w-full flex items-center justify-between text-sm px-3 py-2.5 rounded-lg transition-colors"
           style={{
-            background: "rgba(250, 250, 250, 0.7)",
-            border: "1px solid var(--border-default)",
-            color: "var(--surface-900)",
+            background: "var(--color-bg-page)",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text-heading)",
           }}
         >
           <div>
             <span className="font-medium">{current.name}</span>
-            <span className="ml-2 text-xs" style={{ color: "var(--surface-400)" }}>
+            <span
+              className="ml-2 text-xs"
+              style={{ color: "var(--color-text-muted)" }}
+            >
               {current.description}
             </span>
           </div>
@@ -41,7 +47,7 @@ export function AIProviderSelect() {
             style={{
               width: 16,
               height: 16,
-              color: "var(--surface-400)",
+              color: "var(--color-text-muted)",
               transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 0.2s",
             }}
@@ -57,10 +63,9 @@ export function AIProviderSelect() {
             <div
               className="absolute left-0 right-0 top-full mt-1 z-20 overflow-hidden"
               style={{
-                background: "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(12px)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: "var(--radius-md)",
+                background: "var(--color-bg-card)",
+                border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius-lg)",
                 boxShadow: "var(--shadow-xl)",
               }}
             >
@@ -73,12 +78,12 @@ export function AIProviderSelect() {
                   }}
                   className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-left transition-colors"
                   style={{
-                    background: selected === provider.id ? "var(--accent-indigo-light)" : "transparent",
-                    color: selected === provider.id ? "var(--accent-indigo)" : "var(--surface-700)",
+                    background: selected === provider.id ? "var(--color-bg-hover)" : "transparent",
+                    color: selected === provider.id ? "var(--color-primary)" : "var(--color-text-body)",
                   }}
                   onMouseEnter={(e) => {
                     if (selected !== provider.id) {
-                      e.currentTarget.style.background = "var(--surface-50)";
+                      e.currentTarget.style.background = "var(--color-bg-hover)";
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -91,13 +96,13 @@ export function AIProviderSelect() {
                     <span className="font-medium">{provider.name}</span>
                     <span
                       className="ml-2 text-xs"
-                      style={{ color: selected === provider.id ? "var(--accent-indigo)" : "var(--surface-400)" }}
+                      style={{ color: selected === provider.id ? "var(--color-primary)" : "var(--color-text-muted)" }}
                     >
                       {provider.description}
                     </span>
                   </div>
                   {selected === provider.id && (
-                    <Check style={{ width: 16, height: 16 }} />
+                    <Check style={{ width: 16, height: 16, color: "var(--color-primary)" }} />
                   )}
                 </button>
               ))}
