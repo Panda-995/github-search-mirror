@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { GitBranch, Sparkles, AlertCircle, Mail, Lock, UserPlus, LogIn } from "lucide-react";
+import { Sparkles, AlertCircle, Mail, Lock, UserPlus, LogIn } from "lucide-react";
 
 function InlineError({ message }: { message: string | null }) {
   if (!message) return null;
@@ -40,9 +40,6 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const errorMessages: Record<string, string> = {
-    OAuthSignin: "GitHub OAuth 配置错误，请检查环境变量",
-    OAuthCallback: "GitHub 授权回调失败",
-    OAuthCreateAccount: "创建账户失败",
     EmailSignin: "邮箱登录失败",
     CredentialsSignin: "邮箱或密码不正确",
     Callback: "回调处理失败",
@@ -166,7 +163,7 @@ export default function LoginPage() {
                 {mode === "login" ? "登录到 GitMirror" : "注册 GitMirror 账号"}
               </h1>
               <p className="text-sm mt-1" style={{ color: "var(--color-text-body)" }}>
-                {mode === "login" ? "选择登录方式" : "创建你的账号"}
+                {mode === "login" ? "使用邮箱登录或注册" : "创建你的账号"}
               </p>
             </div>
 
@@ -184,26 +181,6 @@ export default function LoginPage() {
                 <p className="text-xs">{routeError}</p>
               </div>
             )}
-
-            {/* GitHub Login */}
-            <button
-              type="button"
-              onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
-              className="btn-primary w-full justify-center"
-              style={{ marginBottom: 24 }}
-            >
-              <GitBranch style={{ width: 18, height: 18 }} />
-              使用 GitHub 登录
-            </button>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex-1 h-px" style={{ background: "var(--color-border)" }} />
-              <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                或使用邮箱
-              </span>
-              <div className="flex-1 h-px" style={{ background: "var(--color-border)" }} />
-            </div>
 
             {/* Mode Toggle */}
             <div className="tab-pill-container w-full mb-5">

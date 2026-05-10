@@ -19,7 +19,7 @@
 - **框架**: [Next.js](https://nextjs.org) 16 + React 19 + TypeScript
 - **样式**: Tailwind CSS 4 + UnoCSS
 - **数据库**: PostgreSQL + Drizzle ORM（带内存回退）
-- **认证**: NextAuth.js (GitHub OAuth + 邮箱密码登录)
+- **认证**: NextAuth.js (邮箱密码登录)
 - **搜索**: Meilisearch
 - **向量数据库**: Qdrant（预留给语义搜索扩展）
 - **缓存**: Redis + 内存缓存双级缓存
@@ -64,8 +64,6 @@ cp .env.example .env.local
 | -------------------- | -------------------------------------------------- |
 | `DATABASE_URL`       | PostgreSQL 连接字符串（可选，未配置时使用内存数据库） |
 | `AUTH_SECRET`        | NextAuth 密钥                                      |
-| `AUTH_GITHUB_ID`     | GitHub OAuth App ID                                |
-| `AUTH_GITHUB_SECRET` | GitHub OAuth App Secret                            |
 | `ADMIN_EMAILS`       | 管理员邮箱列表，多个邮箱用英文逗号分隔             |
 | `GITHUB_TOKEN`       | 可选的 GitHub API Token，用于提高公共 API 速率限制 |
 
@@ -98,8 +96,6 @@ cp .env.example .env
 | --------------------- | ------------------------------------------------------------- | ---- |
 | `POSTGRES_PASSWORD`   | PostgreSQL 数据库密码                                         | 是   |
 | `AUTH_SECRET`         | NextAuth 加密密钥                                             | 是   |
-| `AUTH_GITHUB_ID`      | GitHub OAuth App ID                                           | 是   |
-| `AUTH_GITHUB_SECRET`  | GitHub OAuth App Secret                                       | 是   |
 | `ADMIN_EMAILS`        | 管理员邮箱列表，多个邮箱用英文逗号分隔                        | 否   |
 | `GITHUB_TOKEN`        | GitHub API Token，用于提高公共 API 速率限制                   | 否   |
 | `MEILISEARCH_API_KEY` | Meilisearch 主密钥                                            | 是   |

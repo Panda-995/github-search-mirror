@@ -1936,40 +1936,9 @@ POST /api/comments/:repo
 
 ---
 
-## 七、GitHub OAuth 配置
+## 七、认证说明
 
-### 7.1 GitHub App 注册
-
-```
-1. 访问 https://github.com/settings/applications/new
-2. 填写以下信息:
-   - Application name: GitMirror
-   - Homepage URL: https://mirror.xxx
-   - Authorization callback URL: https://mirror.xxx/api/auth/callback/github
-3. 获取 Client ID 和 Client Secret
-4. 填入 .env.local:
-   AUTH_GITHUB_ID=your_client_id
-   AUTH_GITHUB_SECRET=your_client_secret
-```
-
-### 7.2 Token 权限说明
-
-```typescript
-// NextAuth GitHub Provider 配置
-{
-  clientId: process.env.AUTH_GITHUB_ID,
-  clientSecret: process.env.AUTH_GITHUB_SECRET,
-  authorization: {
-    params: {
-      scope: [
-        'read:user',        // 读取用户信息
-        'public_repo',     // 访问公开仓库 (可选)
-        'read:org',         // 读取组织信息 (可选)
-      ].join(' ')
-    }
-  }
-}
-```
+当前版本仅保留邮箱密码登录流程，已移除 GitHub OAuth 登录接入，不再需要 `AUTH_GITHUB_ID` 和 `AUTH_GITHUB_SECRET`。
 
 ---
 
@@ -2014,7 +1983,7 @@ POST /api/comments/:repo
 | 阶段 | 周期 | 里程碑 |
 |---|---|---|
 | **Phase 0** | W1 | 项目初始化 + 搜索基础架构 |
-| **Phase 1** | W2-W3 | 搜索页面 + 过滤器 + GitHub OAuth |
+| **Phase 1** | W2-W3 | 搜索页面 + 过滤器 + 用户认证 |
 | **Phase 2** | W4 | 项目详情页 (README 渲染 + 文件浏览) |
 | **Phase 3** | W5 | 趋势榜单 + 镜像直链 |
 | **Phase 4** | W6 | 用户系统 + 收藏 + 历史 |
