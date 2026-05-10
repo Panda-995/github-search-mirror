@@ -1,51 +1,67 @@
-version: "3.9"
+version: "3.8"
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/panda-995/gitmirror:latest
+    restart: always
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://gitmirror:${POSTGRES_PASSWORD}@db:5432/gitmirror
-      - MEILISEARCH_HOST=http://search:7700
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/github_mirror
+      - MEILISEARCH_URL=http://meilisearch:7700
       - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY}
-      - QDRANT_URL=http://vector:6333
+      - REDIS_URL=redis://default:${REDIS_PASSWORD}@redis:6379
+      - QDRANT_URL=http://qdrant:6333
       - QDRANT_API_KEY=${QDRANT_API_KEY}
-      - REDIS_HOST=cache
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - AUTH_SECRET=${AUTH_SECRET}
       - AUTH_GITHUB_ID=${AUTH_GITHUB_ID}
       - AUTH_GITHUB_SECRET=${AUTH_GITHUB_SECRET}
       - ADMIN_EMAILS=${ADMIN_EMAILS}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - MIRROR_BASE_URL=${MIRROR_BASE_URL}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - MIRROR_BASE_URL=${MIRROR_BASE_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - CUSTOM_AI_BASE_URL=${CUSTOM_AI_BASE_URL}
+      - CUSTOM_AI_API_KEY=${CUSTOM_AI_API_KEY}
+      - NODE_ENV=production
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
-      search:
+      meilisearch:
         condition: service_healthy
-      vector:
+      redis:
         condition: service_healthy
-      cache:
-        condition: service_started
-    networks:
-      - gitmirror
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
-  search:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=github_mirror
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  meilisearch:
     image: getmeili/meilisearch:v1.8
-    restart: unless-stopped
-    ports:
-      - "7700:7700"
+    restart: always
     environment:
       - MEILI_MASTER_KEY=${MEILISEARCH_API_KEY}
-      - MEILI_NO_ANALYTICS=true
     volumes:
       - meili_data:/meili_data
     healthcheck:
@@ -53,89 +69,34 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - gitmirror
 
-  vector:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
     image: qdrant/qdrant:latest
-    restart: unless-stopped
+    restart: always
     environment:
       - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
-      - QDRANT_API_KEY=${QDRANT_API_KEY}
-    expose:
-      - "6333"
-      - "6334"
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'if [ -n "$$QDRANT_API_KEY" ]; then wget -qO- --header="api-key: $$QDRANT_API_KEY" http://localhost:6333/readyz; else wget -qO- http://localhost:6333/readyz; fi',
-        ]
+      test: ["CMD", "wget", "-qO-", "http://localhost:6333/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - gitmirror
-
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: gitmirror
-      POSTGRES_USER: gitmirror
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gitmirror"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - gitmirror
-
-  cache:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: >
-      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then
-        redis-server --appendonly yes --maxmemory 256mb --requirepass "$$REDIS_PASSWORD";
-      else
-        redis-server --appendonly yes --maxmemory 256mb;
-      fi'
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    volumes:
-      - redis_data:/data
-    networks:
-      - gitmirror
-
-  proxy:
-    image: traefik:v3.0
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      - TRAEFIK_CERTIFICATESRESOLVERS=letsencrypt
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
-      - traefik_acme:/acme
-    networks:
-      - gitmirror
-
-networks:
-  gitmirror:
-    driver: bridge
 
 volumes:
   postgres_data:
-  redis_data:
   meili_data:
+  redis_data:
   qdrant_data:
-  traefik_acme:
