@@ -8,6 +8,7 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { sanitizeAIConfig } from "@/lib/ai-safety";
 import { decryptSecret, encryptSecret, normalizeSecretForStorage } from "@/lib/secret-crypto";
+import { isDatabaseErrorMessage } from "@/lib/api-guard";
 
 export interface AIConfig {
   provider: string;
@@ -58,6 +59,14 @@ function toPublicAIConfig(value: unknown): AIConfig {
   };
 }
 
+function toSettingsActionError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : "";
+  if (isDatabaseErrorMessage(message)) {
+    return "数据库服务暂时不可用，请检查 DATABASE_URL、PostgreSQL 服务或数据库迁移是否已执行。";
+  }
+  return message || fallback;
+}
+
 export async function getUserSettings() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -77,8 +86,7 @@ export async function getUserSettings() {
       aiConfig: toPublicAIConfig(user.aiConfig),
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "未知错误";
-    throw new Error("获取设置失败: " + message);
+    throw new Error(toSettingsActionError(error, "获取设置失败"));
   }
 }
 
@@ -139,8 +147,7 @@ export async function updateUserSettings(settings: UserSettings) {
       aiApiKeyConfigured: hasSecret(nextAIKey),
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "未知错误";
-    throw new Error("保存设置失败: " + message);
+    throw new Error(toSettingsActionError(error, "保存设置失败"));
   }
 }
 

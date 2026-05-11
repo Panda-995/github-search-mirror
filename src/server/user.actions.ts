@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { isDatabaseErrorMessage } from "@/lib/api-guard";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -19,6 +20,14 @@ function getInitialRole(email: string | null) {
     .filter(Boolean);
 
   return email && adminEmails.includes(email.toLowerCase()) ? "ADMIN" : "USER";
+}
+
+function toUserActionError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : "";
+  if (isDatabaseErrorMessage(message)) {
+    return "数据库服务暂时不可用，请检查 DATABASE_URL、PostgreSQL 服务或数据库迁移是否已执行。";
+  }
+  return message || fallback;
 }
 
 export async function getUserById(id: string) {
@@ -91,7 +100,11 @@ export async function verifyEmailCredentials(email: string, password: string) {
 }
 
 export async function getCollections(userId: string) {
-  return db.select().from(collections).where(eq(collections.userId, userId)).limit(1000);
+  try {
+    return await db.select().from(collections).where(eq(collections.userId, userId)).limit(1000);
+  } catch (error) {
+    throw new Error(toUserActionError(error, "获取收藏夹失败"));
+  }
 }
 
 export async function getCollectionById(collectionId: string) {

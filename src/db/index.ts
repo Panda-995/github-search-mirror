@@ -1,11 +1,15 @@
-import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
+import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
+import Database from "better-sqlite3";
 import { Pool } from "pg";
 import * as schema from "./schema";
+import * as sqliteSchema from "./schema-sqlite";
 
-type DrizzleDatabase = ReturnType<typeof drizzle<typeof schema>>;
+const isSqlite = process.env.DATABASE_PROVIDER === "sqlite";
 
-let dbInstance: DrizzleDatabase | null = null;
+let dbInstance: any = null;
 let poolInstance: Pool | null = null;
+let sqliteInstance: Database.Database | null = null;
 let commentsSchemaReady: Promise<void> | null = null;
 let memoryIdSequence = 0;
 
@@ -16,7 +20,6 @@ interface MemoryStorage {
   collections: TableRecord[];
   favorites: TableRecord[];
   searchHistory: TableRecord[];
-  comments: TableRecord[];
 }
 
 interface FilterCondition {
@@ -40,14 +43,13 @@ type DrizzleQueryBuilder = {
   orderBy: (...args: unknown[]) => DrizzleQueryBuilder;
 };
 
-export type DB = Pick<DrizzleDatabase, "delete" | "insert" | "select" | "update">;
+export type DB = Pick<any, "delete" | "insert" | "select" | "update">;
 
 const memoryStorage: MemoryStorage = {
   users: [],
   collections: [],
   favorites: [],
   searchHistory: [],
-  comments: [],
 };
 
 function canUseMemoryDb() {
@@ -67,6 +69,65 @@ function getPool() {
   return poolInstance;
 }
 
+function getSqliteDb() {
+  if (sqliteInstance) return sqliteInstance;
+  const dbPath = process.env.SQLITE_DATABASE_PATH || "./data/github-search-mirror.sqlite";
+  
+  // Ensure directory exists
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const dir = path.dirname(dbPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  } catch {
+    // ignore
+  }
+  
+  sqliteInstance = new Database(dbPath);
+  sqliteInstance.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      github_token TEXT,
+      password_hash TEXT,
+      email TEXT UNIQUE,
+      name TEXT,
+      avatar TEXT,
+      role TEXT DEFAULT 'USER',
+      ai_config TEXT,
+      created_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS collections (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      is_public INTEGER DEFAULT 0,
+      user_id TEXT NOT NULL,
+      created_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS favorites (
+      id TEXT PRIMARY KEY,
+      repo_full_name TEXT NOT NULL,
+      repo_meta TEXT,
+      note TEXT,
+      collection_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      created_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS search_history (
+      id TEXT PRIMARY KEY,
+      query TEXT NOT NULL,
+      filters TEXT,
+      user_id TEXT,
+      created_at INTEGER
+    );
+  `);
+  return sqliteInstance;
+}
+
 function initDb() {
   if (dbInstance) return dbInstance;
   if (process.env.NODE_ENV === "test" && process.env.USE_POSTGRES_IN_TEST !== "true") {
@@ -74,10 +135,17 @@ function initDb() {
   }
 
   try {
-    const pool = getPool();
-    if (!pool) return null;
-    dbInstance = drizzle(pool, { schema });
-    return dbInstance;
+    if (isSqlite) {
+      const sqliteDb = getSqliteDb();
+      if (!sqliteDb) return null;
+      dbInstance = drizzleSqlite(sqliteDb, { schema: sqliteSchema });
+      return dbInstance;
+    } else {
+      const pool = getPool();
+      if (!pool) return null;
+      dbInstance = drizzlePg(pool, { schema });
+      return dbInstance;
+    }
   } catch {
     if (!canUseMemoryDb()) {
       throw new Error("Database initialization failed");
@@ -87,7 +155,7 @@ function initDb() {
 }
 
 export async function ensureCommentsSchema() {
-  if (canUseMemoryDb()) return;
+  if (canUseMemoryDb() || isSqlite) return;
 
   const pool = getPool();
   if (!pool) return;
@@ -129,37 +197,6 @@ export async function ensureCommentsSchema() {
         ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now();
         ALTER TABLE users ALTER COLUMN id SET DEFAULT gen_random_uuid();
       `);
-
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS comments (
-          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-          repo_full_name varchar(255) NOT NULL,
-          content text NOT NULL,
-          rating integer,
-          user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          parent_id uuid REFERENCES comments(id) ON DELETE CASCADE,
-          is_pinned boolean DEFAULT false,
-          is_deleted boolean DEFAULT false,
-          created_at timestamp with time zone DEFAULT now()
-        );
-
-        ALTER TABLE comments ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid();
-        ALTER TABLE comments ADD COLUMN IF NOT EXISTS repo_full_name varchar(255);
-        ALTER TABLE comments ADD COLUMN IF NOT EXISTS content text;
-        ALTER TABLE comments ADD COLUMN IF NOT EXISTS rating integer;
-        ALTER TABLE comments ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES users(id) ON DELETE CASCADE;
-        ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id uuid REFERENCES comments(id) ON DELETE CASCADE;
-        ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_pinned boolean DEFAULT false;
-        ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_deleted boolean DEFAULT false;
-        ALTER TABLE comments ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now();
-        ALTER TABLE comments ALTER COLUMN id SET DEFAULT gen_random_uuid();
-
-        UPDATE comments SET is_pinned = false WHERE is_pinned IS NULL;
-        UPDATE comments SET is_deleted = false WHERE is_deleted IS NULL;
-        UPDATE comments SET created_at = now() WHERE created_at IS NULL;
-
-        CREATE INDEX IF NOT EXISTS comments_repo_full_name_idx ON comments(repo_full_name);
-      `);
     })().catch((error) => {
       commentsSchemaReady = null;
       throw error;
@@ -172,6 +209,16 @@ export async function ensureCommentsSchema() {
 export async function checkDatabaseHealth() {
   if (canUseMemoryDb()) {
     return { ok: true, mode: "memory" };
+  }
+
+  if (isSqlite) {
+    try {
+      const sqliteDb = getSqliteDb();
+      sqliteDb.prepare("SELECT 1").run();
+      return { ok: true, mode: "sqlite" };
+    } catch {
+      return { ok: false, mode: "unavailable" };
+    }
   }
 
   const pool = getPool();
@@ -196,7 +243,6 @@ function getTableName(table: unknown): keyof MemoryStorage {
   if (name === "collections") return "collections";
   if (name === "favorites") return "favorites";
   if (name === "search_history") return "searchHistory";
-  if (name === "comments") return "comments";
   return "users";
 }
 
@@ -438,7 +484,7 @@ export const db: DB = {
         const realDb = initDb();
         if (realDb) {
           try {
-            const query = realDb.insert(table as never).values(data as never);
+            const query = (realDb as any).insert(table as never).values(data as never);
             const result = columns
               ? await query.returning(columns as never)
               : await query.returning();
@@ -461,7 +507,7 @@ export const db: DB = {
       if (realDb) {
         try {
           return wrapQuery(
-            realDb.select().from(table as never) as unknown as DrizzleQueryBuilder,
+            (realDb as any).select().from(table as never) as unknown as DrizzleQueryBuilder,
             table
           );
         } catch (error) {
@@ -480,7 +526,7 @@ export const db: DB = {
       const realDb = initDb();
       if (realDb) {
         try {
-          await realDb.delete(table as never).where(condition as never);
+          await (realDb as any).delete(table as never).where(condition as never);
           return;
         } catch (error) {
           if (!canUseMemoryDb()) throw error;
@@ -499,7 +545,7 @@ export const db: DB = {
         const realDb = initDb();
         if (realDb) {
           try {
-            await realDb
+            await (realDb as any)
               .update(table as never)
               .set(data as never)
               .where(condition as never);

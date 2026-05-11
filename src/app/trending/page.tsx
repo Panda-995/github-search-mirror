@@ -4,7 +4,7 @@ import { TrendingCard } from "@/components/search/TrendingCard";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, Inbox } from "lucide-react";
+import { TrendingUp, Inbox, Filter, ArrowUpDown } from "lucide-react";
 import Link from "next/link";
 import { parseTrendingRange } from "@/lib/search-params";
 import { getCurrentGitHubToken } from "@/server/github-token";
@@ -12,6 +12,8 @@ import { getCurrentGitHubToken } from "@/server/github-token";
 interface TrendingPageProps {
   searchParams: Promise<{
     range?: string;
+    language?: string;
+    sort?: string;
   }>;
 }
 
@@ -21,18 +23,48 @@ const RANGES = [
   { label: "本月", value: "monthly" },
 ];
 
+const LANGUAGES = [
+  { label: "全部", value: "" },
+  { label: "TypeScript", value: "typescript" },
+  { label: "JavaScript", value: "javascript" },
+  { label: "Python", value: "python" },
+  { label: "Java", value: "java" },
+  { label: "Go", value: "go" },
+  { label: "Rust", value: "rust" },
+  { label: "C++", value: "c++" },
+  { label: "Ruby", value: "ruby" },
+  { label: "Swift", value: "swift" },
+  { label: "Kotlin", value: "kotlin" },
+  { label: "Vue", value: "vue" },
+];
+
+const SORTS = [
+  { label: "热度", value: "trend" },
+  { label: "Stars", value: "stars" },
+  { label: "最近更新", value: "updated" },
+];
+
 async function TrendingResults({ searchParams }: TrendingPageProps) {
   const params = await searchParams;
   const range = parseTrendingRange(params.range);
+  const language = params.language || "";
+  const sort = params.sort || "trend";
 
   let repos: Awaited<ReturnType<typeof getTrendingRepos>> = [];
   let error = null;
 
   try {
-    repos = await getTrendingRepos(range, undefined, await getCurrentGitHubToken());
+    repos = await getTrendingRepos(range, language || undefined, await getCurrentGitHubToken());
   } catch (e) {
     error = e instanceof Error ? e.message : "获取趋势失败";
   }
+
+  // Sort repos based on selection
+  const sorted = [...repos].sort((a, b) => {
+    if (sort === "stars") return b.stars - a.stars;
+    if (sort === "updated") return new Date(b.pushed_at).getTime() - new Date(a.pushed_at).getTime();
+    return (b.trend_score || 0) - (a.trend_score || 0);
+  });
 
   return (
     <>
@@ -49,7 +81,7 @@ async function TrendingResults({ searchParams }: TrendingPageProps) {
         </div>
       )}
 
-      {!error && repos.length === 0 && (
+      {!error && sorted.length === 0 && (
         <div className="card flex flex-col items-center justify-center py-16 px-4">
           <div
             className="flex items-center justify-center h-14 w-14 rounded-2xl mb-5"
@@ -70,7 +102,7 @@ async function TrendingResults({ searchParams }: TrendingPageProps) {
       )}
 
       <div className="space-y-4">
-        {repos.map((repo, index) => (
+        {sorted.map((repo, index) => (
           <TrendingCard key={repo.full_name} repo={repo} rank={index + 1} />
         ))}
       </div>
@@ -98,16 +130,49 @@ export default function TrendingPage({ searchParams }: TrendingPageProps) {
             </h1>
           </div>
 
-          {/* Sliding Pill Tabs */}
-          <div className="tab-pill-container mb-6 mx-2 sm:mx-0">
+          {/* Sliding Pill Tabs - Range */}
+          <div className="tab-pill-container mb-4 mx-2 sm:mx-0 flex-wrap">
             {RANGES.map((range) => (
               <TabLink
                 key={range.value}
-                range={range.value}
+                paramKey="range"
+                value={range.value}
                 label={range.label}
                 searchParams={searchParams}
               />
             ))}
+          </div>
+
+          {/* Language Filter */}
+          <div className="flex items-center gap-2 mb-3 mx-2 sm:mx-0">
+            <Filter style={{ width: 14, height: 14, color: "var(--color-text-muted)" }} />
+            <div className="flex flex-wrap gap-1.5">
+              {LANGUAGES.map((lang) => (
+                <TabLink
+                  key={lang.value}
+                  paramKey="language"
+                  value={lang.value}
+                  label={lang.label}
+                  searchParams={searchParams}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Sort Options */}
+          <div className="flex items-center gap-2 mb-6 mx-2 sm:mx-0">
+            <ArrowUpDown style={{ width: 14, height: 14, color: "var(--color-text-muted)" }} />
+            <div className="flex flex-wrap gap-1.5">
+              {SORTS.map((s) => (
+                <TabLink
+                  key={s.value}
+                  paramKey="sort"
+                  value={s.value}
+                  label={s.label}
+                  searchParams={searchParams}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Results */}
@@ -141,20 +206,35 @@ export default function TrendingPage({ searchParams }: TrendingPageProps) {
 }
 
 async function TabLink({
-  range,
+  paramKey,
+  value,
   label,
   searchParams,
 }: {
-  range: string;
+  paramKey: string;
+  value: string;
   label: string;
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
-  const currentRange = parseTrendingRange(params.range);
-  const isActive = currentRange === range;
+
+  const currentValue =
+    paramKey === "range" ? parseTrendingRange(params.range) : (params[paramKey] || "");
+  const isActive = currentValue === value;
+
+  const buildUrl = () => {
+    const searchParamMap: Record<string, string> = {};
+    for (const [k, v] of Object.entries(params)) {
+      if (v && k !== paramKey && k !== "page") searchParamMap[k] = v;
+    }
+    if (value) searchParamMap[paramKey] = value;
+    const urlParams = new URLSearchParams(searchParamMap);
+    const qs = urlParams.toString();
+    return `/trending${qs ? "?" + qs : ""}`;
+  };
 
   return (
-    <Link href={`/trending?range=${range}`} className={`tab-pill ${isActive ? "active" : ""}`}>
+    <Link href={buildUrl()} className={`tab-pill ${isActive ? "active" : ""}`}>
       {label}
     </Link>
   );

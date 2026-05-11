@@ -4,12 +4,11 @@ import { authOptions } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import Link from "next/link";
-import { BarChart3, Users, MessageSquare } from "lucide-react";
+import { BarChart3, Users } from "lucide-react";
 
 const adminNav = [
   { href: "/admin/analytics", label: "数据统计", icon: BarChart3 },
   { href: "/admin/users", label: "用户管理", icon: Users },
-  { href: "/admin/comments", label: "评论审核", icon: MessageSquare },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

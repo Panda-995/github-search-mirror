@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Star, GitFork, Circle, Clock } from "lucide-react";
+import { Star, GitFork, Circle, Clock, Heart, AlertTriangle } from "lucide-react";
 import type { RepoItem } from "@/types";
 import { formatNumber, formatDate } from "@/lib/utils";
+import { calculateRepoHealth, getTopRisk } from "@/lib/repo-insights";
+import { useMemo } from "react";
 
 interface RepoCardProps {
   repo: RepoItem;
@@ -32,7 +34,47 @@ const LANGUAGE_COLORS: Record<string, string> = {
   Scala: "#c22d40",
 };
 
+const GRADE_COLORS: Record<string, { bg: string; text: string }> = {
+  A: { bg: "#ECFDF5", text: "#059669" },
+  B: { bg: "#F0F9FF", text: "#0284C7" },
+  C: { bg: "#FFFBEB", text: "#D97706" },
+  D: { bg: "#FEF2F2", text: "#DC2626" },
+  F: { bg: "#FEF2F2", text: "#991B1B" },
+};
+
+const RISK_LEVEL_COLORS: Record<string, string> = {
+  critical: "#DC2626",
+  high: "#D97706",
+  medium: "#0284C7",
+  low: "#6B7280",
+};
+
 export function RepoCard({ repo }: RepoCardProps) {
+  const health = useMemo(() => {
+    try {
+      return calculateRepoHealth({
+        stargazers_count: repo.stars,
+        forks_count: repo.forks,
+        open_issues_count: repo.open_issues,
+        watchers_count: repo.watchers,
+        language: repo.language,
+        description: repo.description,
+        license: repo.license ? { name: repo.license } : null,
+        created_at: repo.created_at,
+        pushed_at: repo.pushed_at,
+        updated_at: repo.updated_at,
+        homepage: repo.homepage,
+        topics: repo.topics,
+        has_readme: true,
+      });
+    } catch {
+      return null;
+    }
+  }, [repo]);
+
+  const topRisk = health ? getTopRisk(health.risks) : null;
+  const gradeColors = health ? (GRADE_COLORS[health.grade] || GRADE_COLORS.C) : null;
+
   return (
     <div className="list-item-card group" style={{ padding: "24px" }}>
       {/* Title row */}
@@ -125,6 +167,31 @@ export function RepoCard({ repo }: RepoCardProps) {
             {formatNumber(repo.forks)}
           </span>
         </span>
+
+        {/* Health Score Badge */}
+        {health && (
+          <span
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+            style={{
+              background: gradeColors?.bg,
+              color: gradeColors?.text,
+            }}
+          >
+            <Heart style={{ width: 11, height: 11 }} />
+            {health.score} · {health.grade}
+          </span>
+        )}
+
+        {/* Top Risk Badge */}
+        {topRisk && (
+          <span
+            className="flex items-center gap-1 text-xs font-medium"
+            style={{ color: RISK_LEVEL_COLORS[topRisk.level] || "#6B7280" }}
+          >
+            <AlertTriangle style={{ width: 11, height: 11 }} />
+            {topRisk.title}
+          </span>
+        )}
 
         <span
           className="flex items-center gap-1 ml-auto"

@@ -217,11 +217,9 @@ export function Header({ initialSearchQuery = "" }: HeaderProps = {}) {
             {isAuthenticated ? (
               <div className="hidden md:flex items-center gap-2">
                 {session?.user?.image ? (
-                  <Image
+                  <img
                     src={session.user.image}
                     alt={session.user.name || "用户"}
-                    width={28}
-                    height={28}
                     className="w-7 h-7 rounded-full"
                   />
                 ) : (

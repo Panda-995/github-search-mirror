@@ -4,8 +4,13 @@ import { authOptions } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { DashboardErrorNotice } from "@/components/dashboard/DashboardErrorNotice";
 import { SettingsForm } from "@/components/dashboard/SettingsForm";
 import { getUserSettings } from "@/server/settings.actions";
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "设置加载失败，请稍后重试。";
+}
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -13,7 +18,14 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
-  const settings = await getUserSettings();
+  let settings: Awaited<ReturnType<typeof getUserSettings>> = null;
+  let loadError = "";
+
+  try {
+    settings = await getUserSettings();
+  } catch (error) {
+    loadError = getErrorMessage(error);
+  }
 
   return (
     <>
@@ -43,22 +55,30 @@ export default async function SettingsPage() {
                 </p>
               </div>
 
-              <SettingsForm
-                initialSettings={
-                  settings ?? {
-                    name: session.user.name ?? "",
-                    githubToken: "",
-                    githubTokenConfigured: false,
-                    aiConfig: {
-                      provider: "claude",
-                      model: "",
-                      apiEndpoint: "",
-                      apiKey: "",
-                      apiKeyConfigured: false,
-                    },
+              {loadError ? (
+                <DashboardErrorNotice
+                  title="设置加载失败"
+                  message={loadError}
+                  actionHref="/dashboard/settings"
+                />
+              ) : (
+                <SettingsForm
+                  initialSettings={
+                    settings ?? {
+                      name: session.user.name ?? "",
+                      githubToken: "",
+                      githubTokenConfigured: false,
+                      aiConfig: {
+                        provider: "claude",
+                        model: "",
+                        apiEndpoint: "",
+                        apiKey: "",
+                        apiKeyConfigured: false,
+                      },
+                    }
                   }
-                }
-              />
+                />
+              )}
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { desc } from "drizzle-orm";
 import { Shield, User } from "lucide-react";
-import Image from "next/image";
+
 
 export default async function UsersPage() {
   let allUsers: (typeof users.$inferSelect)[] = [];
@@ -64,11 +64,9 @@ export default async function UsersPage() {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     {user.avatar ? (
-                      <Image
+                      <img
                         src={user.avatar}
                         alt={user.name ?? ""}
-                        width={32}
-                        height={32}
                         className="h-8 w-8 rounded-full"
                       />
                     ) : (

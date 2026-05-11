@@ -5,6 +5,7 @@ import { SearchBox } from "@/components/search/SearchBox";
 import { FilterPanel } from "@/components/search/FilterPanel";
 import { RepoList } from "@/components/search/RepoList";
 import { SortSelect } from "@/components/search/SortSelect";
+import { AIRecommendationPanel } from "@/components/search/AIRecommendationPanel";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,7 +54,6 @@ async function SearchResults({ params }: { params: SearchParams }) {
         },
         token
       );
-      // Save search history if user is logged in
       if (session?.user?.id) {
         try {
           await saveSearchHistory(
@@ -142,25 +142,27 @@ async function SearchResults({ params }: { params: SearchParams }) {
       )}
 
       {results && results.total > 0 && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3">
-          <p className="text-sm" style={{ color: "var(--color-text-body)" }}>
-            找到{" "}
-            <span className="font-semibold" style={{ color: "var(--color-text-heading)" }}>
-              {results.total.toLocaleString()}
-            </span>{" "}
-            个结果
-            {searchRequest.normalizedQuery && (
-              <span style={{ color: "var(--color-text-muted)" }}>
-                {" "}
-                for &quot;{searchRequest.normalizedQuery}&quot;
-              </span>
-            )}
-          </p>
-          <SortSelect />
-        </div>
+        <>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3">
+            <p className="text-sm" style={{ color: "var(--color-text-body)" }}>
+              找到{" "}
+              <span className="font-semibold" style={{ color: "var(--color-text-heading)" }}>
+                {results.total.toLocaleString()}
+              </span>{" "}
+              个结果
+              {searchRequest.normalizedQuery && (
+                <span style={{ color: "var(--color-text-muted)" }}>
+                  {" "}
+                  for &quot;{searchRequest.normalizedQuery}&quot;
+                </span>
+              )}
+            </p>
+            <SortSelect />
+          </div>
+          <RepoList results={results} searchParams={params} />
+          <AIRecommendationPanel repos={results.results.slice(0, 10)} query={params.q} />
+        </>
       )}
-
-      {results && results.total > 0 && <RepoList results={results} searchParams={params} />}
     </>
   );
 }

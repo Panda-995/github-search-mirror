@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { getRepo, getRepoReadme } from "@/lib/github";
 import { ReadmeViewer } from "@/components/repo/ReadmeViewer";
 import { AIPanel } from "@/components/repo/AIPanel";
-import { CommentSection } from "@/components/repo/CommentSection";
+import { RepoHealthCard } from "@/components/repo/RepoHealthCard";
 import { FavoriteButton } from "@/components/repo/FavoriteButton";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -20,7 +20,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
 interface RepoPageProps {
   params: Promise<{
@@ -159,11 +158,9 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
                     color: "var(--color-primary)",
                   }}
                 >
-                  <Image
+                  <img
                     src={repoData.owner.avatar_url}
                     alt={repoData.owner.login}
-                    width={20}
-                    height={20}
                     className="w-5 h-5 rounded-full"
                   />
                   {repoData.owner.login}
@@ -318,7 +315,7 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
             readme={readme}
             description={repoData.description || ""}
           />
-          <CommentSection repoFullName={`${owner}/${repo}`} />
+          <RepoHealthCard repo={repoData} />
         </div>
       </div>
     </>

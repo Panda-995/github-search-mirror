@@ -1,4 +1,4 @@
-import { BarChart3, Search, Users, MessageSquare, Star } from "lucide-react";
+import { BarChart3, Search, Users, Star } from "lucide-react";
 import { getAdminAnalytics } from "@/server/admin.actions";
 
 export default async function AnalyticsPage() {
@@ -6,7 +6,6 @@ export default async function AnalyticsPage() {
   const stats = [
     { label: "总搜索次数", value: analytics.searches.toLocaleString(), icon: Search },
     { label: "注册用户", value: analytics.users.toLocaleString(), icon: Users },
-    { label: "评论数", value: analytics.comments.toLocaleString(), icon: MessageSquare },
     { label: "收藏数", value: analytics.favorites.toLocaleString(), icon: Star },
   ];
 

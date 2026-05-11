@@ -12,6 +12,9 @@ import {
   AlertCircle,
   Loader2,
   Trash2,
+  TestTube,
+  X,
+  Clock,
 } from "lucide-react";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import { updateUserSettings } from "@/server/settings.actions";
@@ -50,6 +53,9 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
   const [saveMessage, setSaveMessage] = useState("");
+
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; model?: string; provider?: string; latency?: string; error?: string } | null>(null);
 
   const handleSave = async () => {
     setSaving(true);
@@ -107,6 +113,29 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
         clearApiKey: true,
       },
     }));
+  };
+
+  const handleTestAI = async () => {
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const response = await fetch("/api/ai/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: settings.aiConfig.provider,
+          model: settings.aiConfig.model,
+          apiKey: settings.aiConfig.apiKey || undefined,
+          apiEndpoint: settings.aiConfig.apiEndpoint,
+        }),
+      });
+      const data = await response.json().catch(() => ({ ok: false, error: "请求失败" }));
+      setTestResult(data);
+    } catch {
+      setTestResult({ ok: false, error: "网络请求失败" });
+    } finally {
+      setTestLoading(false);
+    }
   };
 
   return (
@@ -348,6 +377,51 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
               <p className="mt-1.5 text-xs" style={{ color: "var(--color-text-muted)" }}>
                 保存后将删除当前 API Key。
               </p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleTestAI}
+              disabled={testLoading}
+              className="btn-secondary inline-flex items-center gap-2 text-sm"
+            >
+              {testLoading ? (
+                <>
+                  <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />
+                  测试中...
+                </>
+              ) : (
+                <>
+                  <TestTube style={{ width: 14, height: 14 }} />
+                  测试连接
+                </>
+              )}
+            </button>
+
+            {testResult && (
+              <div className="flex items-center gap-1.5">
+                {testResult.ok ? (
+                  <>
+                    <Check style={{ width: 14, height: 14, color: "var(--color-success)" }} />
+                    <span className="text-xs" style={{ color: "var(--color-success)" }}>
+                      连接成功
+                    </span>
+                    <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                      <Clock style={{ width: 10, height: 10, display: "inline", marginRight: 2 }} />
+                      {testResult.latency}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <X style={{ width: 14, height: 14, color: "var(--color-error)" }} />
+                    <span className="text-xs" style={{ color: "var(--color-error)" }}>
+                      {testResult.error || "连接失败"}
+                    </span>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>

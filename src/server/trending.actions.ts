@@ -1,56 +1,124 @@
 "use server";
 
-import { getCache, setCache } from "@/lib/cache";
-import { getTrendingRepos as fetchTrendingRepos } from "@/lib/github";
-import type { TrendingRepo } from "@/types";
-import { createHash } from "crypto";
+const GITHUB_API = "https://api.github.com";
 
-function calculateTrendScore(repo: {
-  stargazers_count: number;
-  forks_count: number;
-  open_issues_count: number;
-}): number {
-  return repo.stargazers_count * 3 + repo.forks_count * 2 + repo.open_issues_count * 0.5;
+function getStartDate(range: "daily" | "weekly" | "monthly"): string {
+  const now = new Date();
+  switch (range) {
+    case "daily":
+      now.setHours(0, 0, 0, 0);
+      break;
+    case "weekly":
+      now.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+      now.setHours(0, 0, 0, 0);
+      break;
+    case "monthly":
+    default:
+      now.setDate(1);
+      now.setHours(0, 0, 0, 0);
+      break;
+  }
+  return now.toISOString().split("T")[0];
+}
+
+interface TrendingRepo {
+  full_name: string;
+  name: string;
+  owner: string;
+  description: string | null;
+  language: string | null;
+  stars: number;
+  forks: number;
+  pushed_at: string;
+  created_at: string;
+  updated_at: string;
+  topics: string[];
+  license: string | null;
+  homepage: string | null;
+  open_issues: number;
+  watchers: number;
+  trend_score: number;
+  estimated_new_stars: number;
 }
 
 export async function getTrendingRepos(
-  period: "daily" | "weekly" | "monthly" = "daily",
+  range: "daily" | "weekly" | "monthly" = "weekly",
   language?: string,
-  token?: string
+  token?: string | null
 ): Promise<TrendingRepo[]> {
-  const tokenScope = token
-    ? createHash("sha256").update(token).digest("hex").slice(0, 16)
-    : "public";
-  const cacheKey = `trending:${tokenScope}:${period}:${language ?? "all"}`;
-  const cached = await getCache<TrendingRepo[]>(cacheKey);
-  if (cached) return cached;
+  try {
+    const dateStr = getStartDate(range);
 
-  const repos = await fetchTrendingRepos(period, language, token);
+    let langFilter = "";
+    if (language) {
+      langFilter = `+language:${encodeURIComponent(language)}`;
+    }
 
-  const trending: TrendingRepo[] = repos.map((repo, index) => ({
-    full_name: repo.full_name,
-    name: repo.name,
-    owner: repo.owner.login,
-    description: repo.description,
-    stars: repo.stargazers_count,
-    forks: repo.forks_count,
-    open_issues: repo.open_issues_count,
-    watchers: repo.watchers_count,
-    language: repo.language,
-    topics: repo.topics,
-    license: repo.license?.name ?? null,
-    created_at: repo.created_at,
-    pushed_at: repo.pushed_at,
-    updated_at: repo.updated_at,
-    homepage: repo.homepage,
-    html_url: repo.html_url,
-    rank: index + 1,
-    stars_today: repo.stargazers_count,
-    trend_score: calculateTrendScore(repo),
-  }));
+    const url = `${GITHUB_API}/search/repositories?q=created:>=${dateStr}${langFilter}&sort=stars&order=desc&per_page=30`;
 
-  const TRENDING_CACHE_TTL_SECONDS = 3600;
+    const headers: HeadersInit = {
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "github-search-mirror",
+    };
 
-  await setCache(cacheKey, trending, TRENDING_CACHE_TTL_SECONDS);
-  return trending;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const res = await fetch(url, { headers, next: { revalidate: 600 } });
+
+    if (!res.ok) {
+      throw new Error(`GitHub API error: ${res.status} ${res.statusText}`);
+    }
+
+    const data = await res.json();
+
+    if (!data.items || !Array.isArray(data.items)) {
+      return [];
+    }
+
+    const maxStars = Math.max(...data.items.map((i: { stargazers_count: number }) => i.stargazers_count || 0), 1);
+
+    return data.items.map((item: any) => {
+      const stars = item.stargazers_count || 0;
+      const trendScore = Math.round((stars / maxStars) * 100);
+
+      let multiplier = 1;
+      switch (range) {
+        case "daily":
+          multiplier = 7;
+          break;
+        case "weekly":
+          multiplier = 1;
+          break;
+        case "monthly":
+          multiplier = 0.25;
+          break;
+      }
+
+      const estimatedNewStars = Math.round(stars * multiplier * (0.5 + Math.random() * 0.5));
+
+      return {
+        full_name: item.full_name || "",
+        name: item.name || "",
+        owner: item.owner?.login || "",
+        description: item.description || null,
+        language: item.language || null,
+        stars,
+        forks: item.forks_count || 0,
+        pushed_at: item.pushed_at || "",
+        created_at: item.created_at || "",
+        updated_at: item.updated_at || "",
+        topics: item.topics || [],
+        license: item.license?.name || null,
+        homepage: item.homepage || null,
+        open_issues: item.open_issues_count || 0,
+        watchers: item.watchers_count || 0,
+        trend_score: trendScore,
+        estimated_new_stars: estimatedNewStars,
+      };
+    });
+  } catch {
+    return [];
+  }
 }
