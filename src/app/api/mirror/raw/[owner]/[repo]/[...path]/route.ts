@@ -12,8 +12,8 @@ export async function GET(
     const filePath = path.join("/");
 
     const rawUrl = getGitHubRawUrl(owner, repo, branch, filePath);
-const MIRROR_REVALIDATE_SECONDS = 3600;
-const MIRROR_STALE_WHILE_REVALIDATE_SECONDS = 86400;
+    const MIRROR_REVALIDATE_SECONDS = 3600;
+    const MIRROR_STALE_WHILE_REVALIDATE_SECONDS = 86400;
 
     const upstream = await fetch(rawUrl, {
       headers: { "User-Agent": "GitMirror/1.0" },

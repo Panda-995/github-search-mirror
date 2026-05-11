@@ -1,7 +1,20 @@
 import { SearchBox } from "@/components/search/SearchBox";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { Sparkles, GitBranch, Zap, ArrowRight, Search, Globe, Shield, Clock, Layers, TrendingUp, Calendar, BarChart3 } from "lucide-react";
+import {
+  Sparkles,
+  GitBranch,
+  Zap,
+  ArrowRight,
+  Search,
+  Globe,
+  Shield,
+  Clock,
+  Layers,
+  TrendingUp,
+  Calendar,
+  BarChart3,
+} from "lucide-react";
 import Link from "next/link";
 
 const FEATURES = [
@@ -125,10 +138,7 @@ export default function HomePage() {
                 >
                   趋势发现
                 </h2>
-                <p
-                  className="text-xs sm:text-sm mt-1"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
+                <p className="text-xs sm:text-sm mt-1" style={{ color: "var(--color-text-muted)" }}>
                   追踪最热门的开源项目动态
                 </p>
               </div>
@@ -195,10 +205,7 @@ export default function HomePage() {
               >
                 为开发者打造的高效工具
               </h2>
-              <p
-                className="text-sm sm:text-base"
-                style={{ color: "var(--color-text-body)" }}
-              >
+              <p className="text-sm sm:text-base" style={{ color: "var(--color-text-body)" }}>
                 整合多种技术能力，提供一站式的开源项目探索体验
               </p>
             </div>
@@ -219,7 +226,9 @@ export default function HomePage() {
                       background: "var(--color-primary-alpha-10)",
                     }}
                   >
-                    <feature.icon style={{ width: 26, height: 26, color: "var(--color-primary)" }} />
+                    <feature.icon
+                      style={{ width: 26, height: 26, color: "var(--color-primary)" }}
+                    />
                   </div>
                   <div>
                     <h3

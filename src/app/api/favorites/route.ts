@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
     const items = await getFavorites(session.user.id, collectionId);
     return NextResponse.json({ favorites: items });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "获取收藏失败";
-    return NextResponse.json({ error: message, favorites: [] }, { status: 500 });
+    const { message, status } = jsonError(error, "获取收藏失败");
+    return NextResponse.json({ error: message, favorites: [] }, { status });
   }
 }
 
@@ -76,7 +76,7 @@ export async function DELETE(request: NextRequest) {
     await removeFavorite(session.user.id, id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "移除收藏失败";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { message, status } = jsonError(error, "移除收藏失败");
+    return NextResponse.json({ error: message }, { status });
   }
 }

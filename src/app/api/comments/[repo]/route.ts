@@ -1,30 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { addComment, getComments } from "@/server/comment.actions";
-import { jsonError, readJsonBody } from "@/lib/api-guard";
+import { isDatabaseErrorMessage, jsonError, readJsonBody } from "@/lib/api-guard";
 import { authOptions } from "@/lib/auth";
 
 const COMMENT_BODY_MAX_BYTES = 8192;
 const COMMENT_MAX_LENGTH = 2000;
-
-function isDatabaseError(message: string) {
-  const normalized = message.toLowerCase();
-  return (
-    normalized.includes("database unavailable") ||
-    normalized.includes("database initialization failed") ||
-    normalized.includes("database update failed") ||
-    normalized.includes("database_url") ||
-    normalized.includes("econnrefused") ||
-    normalized.includes("failed query") ||
-    normalized.includes("relation") ||
-    normalized.includes("column") ||
-    normalized.includes("does not exist") ||
-    normalized.includes("permission denied") ||
-    normalized.includes("connection") ||
-    normalized.includes("connect") ||
-    normalized.includes("timeout")
-  );
-}
 
 function apiError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -54,7 +35,7 @@ export async function GET(
     if (rawMessage === "Invalid repository name") {
       return apiError("仓库名称格式无效", 400);
     }
-    if (isDatabaseError(rawMessage)) {
+    if (isDatabaseErrorMessage(rawMessage)) {
       return commentsUnavailable();
     }
     return NextResponse.json(
@@ -106,7 +87,7 @@ export async function POST(
         400
       );
     }
-    if (isDatabaseError(message)) {
+    if (isDatabaseErrorMessage(message)) {
       return apiError("评论服务暂时不可用", 503);
     }
     return apiError(message, status);

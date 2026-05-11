@@ -52,7 +52,6 @@ export interface TrendingRepo extends RepoItem {
 
 export interface UserProfile {
   id: string;
-  githubId: string | null;
   email: string | null;
   name: string | null;
   avatar: string | null;
@@ -77,13 +76,4 @@ export interface Comment {
   isPinned: boolean;
   isDeleted: boolean;
   createdAt: string;
-}
-
-export interface FilterPreset {
-  id: string;
-  name: string;
-  filters: SearchFilters;
-  isPublic: boolean;
-  usageCount: number;
-  userId: string;
 }

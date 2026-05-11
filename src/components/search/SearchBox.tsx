@@ -155,8 +155,7 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
                 fontWeight: "var(--font-weight-medium)",
               }}
             >
-              <Command style={{ width: 12, height: 12 }} />
-              K
+              <Command style={{ width: 12, height: 12 }} />K
             </kbd>
           </div>
         )}

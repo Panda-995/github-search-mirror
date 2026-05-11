@@ -54,10 +54,7 @@ export function SortSelect() {
 
       {isOpen && (
         <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div
             className="absolute right-0 top-full mt-1 z-20 overflow-hidden"
             style={{
@@ -74,7 +71,10 @@ export function SortSelect() {
                 className="w-full flex items-center justify-between px-3 py-2 text-sm text-left transition-colors"
                 style={{
                   background: currentSort === opt.value ? "var(--color-bg-hover)" : "transparent",
-                  color: currentSort === opt.value ? "var(--color-text-heading)" : "var(--color-text-body)",
+                  color:
+                    currentSort === opt.value
+                      ? "var(--color-text-heading)"
+                      : "var(--color-text-body)",
                 }}
                 onMouseEnter={(e) => {
                   if (currentSort !== opt.value) {

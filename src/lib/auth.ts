@@ -2,11 +2,11 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { NextAuthOptions } from "next-auth";
 import { createEmailUser, getUserById, verifyEmailCredentials } from "@/server/user.actions";
+import { checkRateLimitAsync } from "@/lib/rate-limit";
 
 interface ExtendedSession {
   user: {
     id?: string;
-    githubId?: string;
     role?: "USER" | "ADMIN";
     name?: string | null;
     email?: string | null;
@@ -19,8 +19,60 @@ interface ExtendedToken {
   role?: "USER" | "ADMIN";
 }
 
+type CredentialsMode = "login" | "register";
+type HeaderRecord = Record<string, string | string[] | undefined>;
+
+interface CredentialsRequest {
+  headers?: Headers | HeaderRecord;
+}
+
+const AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_LOGIN_EMAIL_LIMIT = 10;
+const AUTH_REGISTER_EMAIL_LIMIT = 5;
+const AUTH_LOGIN_IP_LIMIT = 50;
+const AUTH_REGISTER_IP_LIMIT = 20;
+
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function getHeaderValue(request: CredentialsRequest | undefined, name: string) {
+  const headers = request?.headers;
+  if (!headers) return undefined;
+
+  if (headers instanceof Headers) {
+    return headers.get(name) ?? undefined;
+  }
+
+  const value = headers[name] ?? headers[name.toLowerCase()];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function getClientIp(request: CredentialsRequest | undefined) {
+  const forwardedFor = getHeaderValue(request, "x-forwarded-for");
+  if (forwardedFor) return forwardedFor.split(",")[0].trim() || "unknown";
+  return getHeaderValue(request, "x-real-ip") ?? "unknown";
+}
+
+async function isCredentialsRateLimited(
+  email: string,
+  mode: CredentialsMode,
+  request: CredentialsRequest | undefined
+) {
+  const emailLimit = mode === "register" ? AUTH_REGISTER_EMAIL_LIMIT : AUTH_LOGIN_EMAIL_LIMIT;
+  const ipLimit = mode === "register" ? AUTH_REGISTER_IP_LIMIT : AUTH_LOGIN_IP_LIMIT;
+  const [emailBucket, ipBucket] = await Promise.all([
+    checkRateLimitAsync(`auth:${mode}:email:${email}`, {
+      limit: emailLimit,
+      windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+    }),
+    checkRateLimitAsync(`auth:${mode}:ip:${getClientIp(request)}`, {
+      limit: ipLimit,
+      windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+    }),
+  ]);
+
+  return !emailBucket.allowed || !ipBucket.allowed;
 }
 
 export const authOptions: NextAuthOptions = {
@@ -34,16 +86,20 @@ export const authOptions: NextAuthOptions = {
         name: { label: "用户名", type: "text" },
         mode: { label: "模式", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) return null;
 
         try {
           const email = normalizeEmail(credentials.email);
           const password = credentials.password;
+          const mode: CredentialsMode = credentials.mode === "register" ? "register" : "login";
           if (password.length < 8) return null;
+          if (await isCredentialsRateLimited(email, mode, request as CredentialsRequest)) {
+            return null;
+          }
 
           const dbUser =
-            credentials.mode === "register"
+            mode === "register"
               ? await createEmailUser({
                   email,
                   password,
@@ -83,7 +139,6 @@ export const authOptions: NextAuthOptions = {
       const extendedSession = session as unknown as ExtendedSession;
       const extendedToken = token as unknown as ExtendedToken;
       extendedSession.user.id = extendedToken.sub ?? "";
-      extendedSession.user.githubId = "";
       extendedSession.user.role = extendedToken.role ?? "USER";
       return session;
     },

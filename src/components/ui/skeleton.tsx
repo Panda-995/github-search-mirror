@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
@@ -7,7 +7,7 @@ function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
       style={{ background: "var(--surface-200)" }}
       {...props}
     />
-  )
+  );
 }
 
-export { Skeleton }
+export { Skeleton };

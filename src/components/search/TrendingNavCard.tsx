@@ -16,7 +16,14 @@ const ICONS = {
   calendar: Calendar,
 };
 
-export function TrendingNavCard({ href, title, description, icon, iconBg, iconColor }: TrendingNavCardProps) {
+export function TrendingNavCard({
+  href,
+  title,
+  description,
+  icon,
+  iconBg,
+  iconColor,
+}: TrendingNavCardProps) {
   const Icon = ICONS[icon];
 
   return (

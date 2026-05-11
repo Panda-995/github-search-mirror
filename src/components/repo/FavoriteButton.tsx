@@ -2,7 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Star, Loader2, FolderHeart, AlertCircle, Trash2, X } from "lucide-react";
-import { getMyCollections, addFavoriteForUser, removeFavoriteByRepoForUser, getFavoriteByRepoForUser } from "@/server/user.actions";
+import {
+  getMyCollections,
+  addFavoriteForUser,
+  removeFavoriteByRepoForUser,
+  getFavoriteByRepoForUser,
+} from "@/server/user.actions";
 
 interface Collection {
   id: string;
@@ -70,7 +75,9 @@ export function FavoriteButton({ repoFullName, repoMeta }: FavoriteButtonProps) 
     }
 
     fetchCollections();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [showForm, collectionId]);
 
   // Close form when clicking outside
@@ -172,10 +179,7 @@ export function FavoriteButton({ repoFullName, repoMeta }: FavoriteButtonProps) 
           }}
         >
           <div className="flex items-center justify-between mb-3">
-            <p
-              className="text-sm font-medium"
-              style={{ color: "var(--color-text-heading)" }}
-            >
+            <p className="text-sm font-medium" style={{ color: "var(--color-text-heading)" }}>
               <FolderHeart style={{ width: 14, height: 14, display: "inline", marginRight: 4 }} />
               选择收藏夹
             </p>

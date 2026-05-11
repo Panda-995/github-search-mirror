@@ -30,15 +30,6 @@ export async function getUserById(id: string) {
   }
 }
 
-export async function getUserByGithubId(githubId: string) {
-  try {
-    const result = await db.select().from(users).where(eq(users.githubId, githubId)).limit(1);
-    return result[0] ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export async function getUserByEmail(email: string) {
   try {
     const result = await db
@@ -49,63 +40,6 @@ export async function getUserByEmail(email: string) {
     return result[0] ?? null;
   } catch {
     return null;
-  }
-}
-
-export async function createOrUpdateUser(data: {
-  githubId: string;
-  email: string | null;
-  emailVerified?: boolean;
-  name: string | null;
-  avatar: string | null;
-  githubToken: string | null;
-}) {
-  try {
-    const email = data.email ? normalizeEmail(data.email) : null;
-    const existing = await getUserByGithubId(data.githubId);
-
-    if (existing) {
-      await db
-        .update(users)
-        .set({
-          email: email ?? existing.email,
-          name: data.name ?? existing.name,
-          avatar: data.avatar ?? existing.avatar,
-          githubToken: data.githubToken ?? existing.githubToken,
-        })
-        .where(eq(users.id, existing.id));
-      return existing.id;
-    }
-
-    const existingByEmail = email ? await getUserByEmail(email) : null;
-    if (existingByEmail) {
-      await db
-        .update(users)
-        .set({
-          githubId: existingByEmail.githubId ?? data.githubId,
-          name: data.name ?? existingByEmail.name,
-          avatar: data.avatar ?? existingByEmail.avatar,
-          githubToken: data.githubToken ?? existingByEmail.githubToken,
-        })
-        .where(eq(users.id, existingByEmail.id));
-      return existingByEmail.id;
-    }
-
-    const result = await db
-      .insert(users)
-      .values({
-        githubId: data.githubId,
-        email,
-        name: data.name,
-        avatar: data.avatar,
-        githubToken: data.githubToken,
-        role: data.emailVerified ? getInitialRole(email) : "USER",
-      })
-      .returning({ id: users.id });
-
-    return result[0].id;
-  } catch {
-    throw new Error("创建/更新用户失败");
   }
 }
 
@@ -138,11 +72,10 @@ export async function createEmailUser(data: {
   const result = await db
     .insert(users)
     .values({
-      githubId: `email-${email}`,
       email,
       name: data.name?.trim() || email.split("@")[0],
       passwordHash: await hashPassword(data.password),
-      role: "USER",
+      role: getInitialRole(email),
     })
     .returning();
 
@@ -158,16 +91,16 @@ export async function verifyEmailCredentials(email: string, password: string) {
 }
 
 export async function getCollections(userId: string) {
-  try {
-    const result = await db
-      .select()
-      .from(collections)
-      .where(eq(collections.userId, userId))
-      .limit(1000);
-    return result;
-  } catch {
-    return [];
-  }
+  return db.select().from(collections).where(eq(collections.userId, userId)).limit(1000);
+}
+
+export async function getCollectionById(collectionId: string) {
+  const result = await db
+    .select()
+    .from(collections)
+    .where(eq(collections.id, collectionId))
+    .limit(1);
+  return result[0] ?? null;
 }
 
 export async function getMyCollections() {
@@ -198,30 +131,48 @@ export async function deleteCollection(userId: string, collectionId: string) {
       .delete(collections)
       .where(and(eq(collections.id, collectionId), eq(collections.userId, userId)));
     revalidatePath("/dashboard/collections");
+    revalidatePath(`/collection/${collectionId}`);
   } catch {
     throw new Error("删除收藏夹失败");
   }
 }
 
-export async function getFavorites(userId: string, collectionId?: string) {
+export async function setCollectionVisibility(collectionId: string, isPublic: boolean) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) throw new Error("未登录");
+
   try {
-    if (collectionId) {
-      const result = await db
-        .select()
-        .from(favorites)
-        .where(and(eq(favorites.userId, userId), eq(favorites.collectionId, collectionId)))
-        .limit(1000);
-      return result;
-    }
-    const result = await db
+    const existing = await db
+      .select()
+      .from(collections)
+      .where(and(eq(collections.id, collectionId), eq(collections.userId, session.user.id)))
+      .limit(1);
+    if (!existing[0]) throw new Error("收藏夹不存在或无权访问");
+
+    await db
+      .update(collections)
+      .set({ isPublic })
+      .where(and(eq(collections.id, collectionId), eq(collections.userId, session.user.id)));
+    revalidatePath("/dashboard/collections");
+    revalidatePath(`/collection/${collectionId}`);
+  } catch {
+    throw new Error("更新收藏夹可见性失败");
+  }
+}
+
+export async function getFavorites(userId: string, collectionId?: string) {
+  if (collectionId) {
+    return db
       .select()
       .from(favorites)
-      .where(eq(favorites.userId, userId))
+      .where(and(eq(favorites.userId, userId), eq(favorites.collectionId, collectionId)))
       .limit(1000);
-    return result;
-  } catch {
-    return [];
   }
+  return db.select().from(favorites).where(eq(favorites.userId, userId)).limit(1000);
+}
+
+export async function getFavoritesByCollectionId(collectionId: string) {
+  return db.select().from(favorites).where(eq(favorites.collectionId, collectionId)).limit(1000);
 }
 
 export async function addFavorite(
@@ -254,6 +205,7 @@ export async function addFavorite(
       })
       .returning();
     revalidatePath("/dashboard/collections");
+    revalidatePath(`/collection/${collectionId}`);
     return result[0];
   } catch {
     throw new Error("添加收藏失败");
@@ -272,26 +224,31 @@ export async function addFavoriteForUser(
 
 export async function removeFavorite(userId: string, favoriteId: string) {
   try {
+    const existing = await db
+      .select()
+      .from(favorites)
+      .where(and(eq(favorites.id, favoriteId), eq(favorites.userId, userId)))
+      .limit(1);
+
     await db
       .delete(favorites)
       .where(and(eq(favorites.id, favoriteId), eq(favorites.userId, userId)));
     revalidatePath("/dashboard/collections");
+    if (existing[0]?.collectionId) {
+      revalidatePath(`/collection/${existing[0].collectionId}`);
+    }
   } catch {
     throw new Error("移除收藏失败");
   }
 }
 
 export async function getFavoriteByRepo(userId: string, repoFullName: string) {
-  try {
-    const result = await db
-      .select()
-      .from(favorites)
-      .where(and(eq(favorites.userId, userId), eq(favorites.repoFullName, repoFullName)))
-      .limit(1);
-    return result[0] ?? null;
-  } catch {
-    return null;
-  }
+  const result = await db
+    .select()
+    .from(favorites)
+    .where(and(eq(favorites.userId, userId), eq(favorites.repoFullName, repoFullName)))
+    .limit(1);
+  return result[0] ?? null;
 }
 
 export async function getFavoriteByRepoForUser(repoFullName: string) {

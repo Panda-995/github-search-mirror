@@ -25,12 +25,7 @@ export async function benchmark(
   fn: () => Promise<void> | void,
   options: BenchmarkOptions = {}
 ): Promise<BenchmarkResult> {
-  const {
-    warmupIterations = 3,
-    iterations = 100,
-    concurrency = 1,
-    maxDuration = 30000,
-  } = options;
+  const { warmupIterations = 3, iterations = 100, concurrency = 1, maxDuration = 30000 } = options;
 
   for (let warmupIdx = 0; warmupIdx < warmupIterations; warmupIdx++) {
     await fn();

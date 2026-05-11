@@ -12,13 +12,7 @@ export function Footer() {
       <div className="page-container py-6 sm:py-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Image
-              src="/logo.png"
-              alt="GitMirror"
-              width={24}
-              height={24}
-              className="rounded"
-            />
+            <Image src="/logo.png" alt="GitMirror" width={24} height={24} className="rounded" />
             <span
               className="text-sm"
               style={{

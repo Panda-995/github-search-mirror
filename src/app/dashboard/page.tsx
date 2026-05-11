@@ -72,10 +72,7 @@ export default async function DashboardPage() {
                 >
                   仪表盘
                 </h1>
-                <p
-                  className="text-sm mt-0.5"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
+                <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
                   欢迎回来，{session.user?.name || "用户"}
                 </p>
               </div>
@@ -136,10 +133,7 @@ export default async function DashboardPage() {
                   >
                     最近搜索
                   </h2>
-                  <Link
-                    href="/dashboard/history"
-                    className="btn-ghost text-xs"
-                  >
+                  <Link href="/dashboard/history" className="btn-ghost text-xs">
                     查看全部
                     <ArrowRight style={{ width: 12, height: 12 }} />
                   </Link>
@@ -151,16 +145,10 @@ export default async function DashboardPage() {
                       className="mx-auto h-8 w-8 mb-2"
                       style={{ color: "var(--color-bg-hover)" }}
                     />
-                    <p
-                      className="text-sm"
-                      style={{ color: "var(--color-text-muted)" }}
-                    >
+                    <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
                       暂无搜索记录
                     </p>
-                    <Link
-                      href="/search"
-                      className="btn-primary inline-flex mt-3"
-                    >
+                    <Link href="/search" className="btn-primary inline-flex mt-3">
                       去搜索
                       <ArrowRight style={{ width: 14, height: 14 }} />
                     </Link>
@@ -176,12 +164,11 @@ export default async function DashboardPage() {
                           color: "var(--color-text-body)",
                         }}
                       >
-                        <Search style={{ width: 14, height: 14, color: "var(--color-text-muted)" }} />
+                        <Search
+                          style={{ width: 14, height: 14, color: "var(--color-text-muted)" }}
+                        />
                         <span className="text-sm flex-1">{item.query}</span>
-                        <span
-                          className="text-xs"
-                          style={{ color: "var(--color-text-muted)" }}
-                        >
+                        <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
                           {item.createdAt
                             ? new Date(item.createdAt).toLocaleDateString("zh-CN")
                             : ""}

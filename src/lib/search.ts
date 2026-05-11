@@ -7,22 +7,4 @@ const meiliClient = new Meilisearch({
 
 export const repoIndex = meiliClient.index("repos");
 
-export async function initSearchIndex() {
-  await repoIndex.updateSettings({
-    searchableAttributes: ["name", "owner", "description", "readme", "topics"],
-    filterableAttributes: [
-      "language",
-      "owner",
-      "stars",
-      "forks",
-      "license",
-      "topics",
-      "created_at",
-      "pushed_at",
-    ],
-    sortableAttributes: ["stars", "forks", "updated_at", "created_at"],
-    rankingRules: ["words", "typo", "proximity", "attribute", "sort", "exactness"],
-  });
-}
-
 export { meiliClient };

@@ -6,19 +6,14 @@ import { stableHash } from "@/lib/stable-hash";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { jsonError, readJsonBody } from "@/lib/api-guard";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkAIDailyLimit } from "@/lib/ai-rate-limit";
+import { checkRateLimitAsync } from "@/lib/rate-limit";
 
 const AI_TRANSLATE_CACHE_TTL_SECONDS = 86400;
 const AI_BODY_MAX_BYTES = 160_000;
 const AI_README_MAX_CHARS = 80_000;
 const AI_RATE_LIMIT_WINDOW_MS = 60_000;
 const AI_RATE_LIMIT_REQUESTS = 10;
-const AI_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-function getDailyQuota() {
-  const value = Number(process.env.AI_DAILY_QUOTA_FREE ?? 200);
-  return Number.isFinite(value) ? Math.min(Math.max(Math.trunc(value), 1), 1000) : 200;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,17 +22,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const rateLimit = checkRateLimit(`ai:translate:${session.user.id}`, {
+    const rateLimit = await checkRateLimitAsync(`ai:translate:${session.user.id}`, {
       limit: AI_RATE_LIMIT_REQUESTS,
       windowMs: AI_RATE_LIMIT_WINDOW_MS,
     });
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: "Too many AI requests" }, { status: 429 });
     }
-    const dailyLimit = checkRateLimit(`ai:daily:${session.user.id}`, {
-      limit: getDailyQuota(),
-      windowMs: AI_DAILY_WINDOW_MS,
-    });
+    const dailyLimit = await checkAIDailyLimit(session.user.id);
     if (!dailyLimit.allowed) {
       return NextResponse.json({ error: "AI daily quota exceeded" }, { status: 429 });
     }

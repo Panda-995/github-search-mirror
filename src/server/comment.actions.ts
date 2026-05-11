@@ -54,11 +54,3 @@ export async function addComment(data: {
   revalidatePath(`/repo/${data.repoFullName}`);
   return result[0];
 }
-
-export async function deleteComment(userId: string, commentId: string) {
-  await ensureCommentsSchema();
-  await db
-    .update(comments)
-    .set({ isDeleted: true })
-    .where(and(eq(comments.id, commentId), eq(comments.userId, userId)));
-}

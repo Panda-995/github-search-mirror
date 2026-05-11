@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 DO $$
 BEGIN
@@ -8,8 +8,7 @@ EXCEPTION
 END $$;
 
 CREATE TABLE IF NOT EXISTS users (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  github_id varchar(255) UNIQUE,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   github_token text,
   password_hash text,
   email varchar(255) UNIQUE,
@@ -21,7 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS collections (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name varchar(255) NOT NULL,
   is_public boolean DEFAULT false,
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -29,7 +28,7 @@ CREATE TABLE IF NOT EXISTS collections (
 );
 
 CREATE TABLE IF NOT EXISTS favorites (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   repo_full_name varchar(255) NOT NULL,
   repo_meta jsonb,
   note text,
@@ -39,25 +38,15 @@ CREATE TABLE IF NOT EXISTS favorites (
 );
 
 CREATE TABLE IF NOT EXISTS search_history (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   query text NOT NULL,
   filters jsonb,
   user_id uuid REFERENCES users(id) ON DELETE CASCADE,
   created_at timestamp with time zone DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS filter_presets (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name varchar(255) NOT NULL,
-  filters jsonb NOT NULL,
-  is_public boolean DEFAULT false,
-  usage_count integer DEFAULT 0,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at timestamp with time zone DEFAULT now()
-);
-
 CREATE TABLE IF NOT EXISTS comments (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   repo_full_name varchar(255) NOT NULL,
   content text NOT NULL,
   rating integer,
@@ -65,23 +54,6 @@ CREATE TABLE IF NOT EXISTS comments (
   parent_id uuid REFERENCES comments(id) ON DELETE CASCADE,
   is_pinned boolean DEFAULT false,
   is_deleted boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS hot_searches (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  keyword varchar(255) NOT NULL UNIQUE,
-  count integer DEFAULT 1,
-  updated_at timestamp with time zone DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS pinned_repos (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  repo_full_name varchar(255) NOT NULL UNIQUE,
-  reason text,
-  position integer DEFAULT 0,
-  type varchar(50) DEFAULT 'trending',
-  expires_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now()
 );
 

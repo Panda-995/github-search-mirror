@@ -46,10 +46,7 @@ export default async function HistoryPage() {
                   >
                     搜索历史
                   </h1>
-                  <p
-                    className="text-sm mt-0.5"
-                    style={{ color: "var(--color-text-muted)" }}
-                  >
+                  <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
                     你最近的搜索记录
                   </p>
                 </div>
@@ -74,9 +71,7 @@ export default async function HistoryPage() {
                     className="flex items-center justify-center h-14 w-14 rounded-2xl mb-5"
                     style={{ background: "var(--color-bg-hover)" }}
                   >
-                    <Clock
-                      style={{ width: 24, height: 24, color: "var(--color-text-muted)" }}
-                    />
+                    <Clock style={{ width: 24, height: 24, color: "var(--color-text-muted)" }} />
                   </div>
                   <p
                     className="text-base font-medium mb-1"
@@ -101,22 +96,15 @@ export default async function HistoryPage() {
                       className="list-item-card flex items-center gap-3"
                       style={{ padding: "16px 24px" }}
                     >
-                      <Search
-                        style={{ width: 16, height: 16, color: "var(--color-text-muted)" }}
-                      />
+                      <Search style={{ width: 16, height: 16, color: "var(--color-text-muted)" }} />
                       <span
                         className="flex-1 text-sm"
                         style={{ color: "var(--color-text-heading)" }}
                       >
                         {item.query}
                       </span>
-                      <span
-                        className="text-xs"
-                        style={{ color: "var(--color-text-muted)" }}
-                      >
-                        {item.createdAt
-                          ? new Date(item.createdAt).toLocaleDateString("zh-CN")
-                          : ""}
+                      <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString("zh-CN") : ""}
                       </span>
                     </Link>
                   ))}

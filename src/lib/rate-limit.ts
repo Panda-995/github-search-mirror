@@ -1,3 +1,5 @@
+import { getReadyRedis } from "@/lib/cache";
+
 interface RateLimitOptions {
   limit: number;
   windowMs: number;
@@ -48,4 +50,53 @@ export function checkRateLimit(key: string, options: RateLimitOptions) {
     remaining: options.limit - current.count,
     resetAt: current.resetAt,
   };
+}
+
+function parseRedisRateLimitResult(result: unknown) {
+  if (!Array.isArray(result) || result.length < 2) return null;
+
+  const count = Number(result[0]);
+  const ttl = Number(result[1]);
+  if (!Number.isFinite(count) || !Number.isFinite(ttl)) return null;
+
+  return { count, ttl };
+}
+
+export async function checkRateLimitAsync(key: string, options: RateLimitOptions) {
+  const client = await getReadyRedis();
+  if (!client) return checkRateLimit(key, options);
+
+  const redisKey = `rate-limit:${key}`;
+  const now = Date.now();
+
+  try {
+    const result = await client.eval(
+      `
+      local current = redis.call("INCR", KEYS[1])
+      if current == 1 then
+        redis.call("PEXPIRE", KEYS[1], ARGV[1])
+      end
+      local ttl = redis.call("PTTL", KEYS[1])
+      return { current, ttl }
+      `,
+      1,
+      redisKey,
+      String(options.windowMs)
+    );
+    const parsed = parseRedisRateLimitResult(result);
+    if (!parsed) return checkRateLimit(key, options);
+
+    const resetAt = now + (parsed.ttl > 0 ? parsed.ttl : options.windowMs);
+    return {
+      allowed: parsed.count <= options.limit,
+      remaining: Math.max(options.limit - parsed.count, 0),
+      resetAt,
+    };
+  } catch {
+    return checkRateLimit(key, options);
+  }
+}
+
+export function resetRateLimitForTests() {
+  if (process.env.NODE_ENV === "test") buckets.clear();
 }

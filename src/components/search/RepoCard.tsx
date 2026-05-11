@@ -33,7 +33,6 @@ const LANGUAGE_COLORS: Record<string, string> = {
 };
 
 export function RepoCard({ repo }: RepoCardProps) {
-
   return (
     <div className="list-item-card group" style={{ padding: "24px" }}>
       {/* Title row */}
@@ -47,7 +46,8 @@ export function RepoCard({ repo }: RepoCardProps) {
             color: "var(--color-primary)",
           }}
         >
-          {repo.owner}/<span style={{ fontWeight: "var(--font-weight-semibold)" }}>{repo.name}</span>
+          {repo.owner}/
+          <span style={{ fontWeight: "var(--font-weight-semibold)" }}>{repo.name}</span>
         </Link>
       </div>
 
@@ -69,10 +69,7 @@ export function RepoCard({ repo }: RepoCardProps) {
       {repo.topics && repo.topics.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
           {repo.topics.slice(0, 5).map((topic: string) => (
-            <span
-              key={topic}
-              className="tag"
-            >
+            <span key={topic} className="tag">
               {topic}
             </span>
           ))}
@@ -123,9 +120,7 @@ export function RepoCard({ repo }: RepoCardProps) {
             color: "var(--color-text-muted)",
           }}
         >
-          <GitFork
-            style={{ width: 13, height: 13 }}
-          />
+          <GitFork style={{ width: 13, height: 13 }} />
           <span style={{ fontWeight: "var(--font-weight-medium)" }}>
             {formatNumber(repo.forks)}
           </span>

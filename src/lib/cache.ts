@@ -9,21 +9,31 @@ const DEFAULT_REDIS_MAX_RETRIES = 1;
 const DEFAULT_REDIS_CONNECT_TIMEOUT_MS = 2000;
 const DEFAULT_MEMORY_CACHE_MAX_ENTRIES = 1000;
 
+function getRedisConnectionOptions() {
+  const port = Number(process.env.REDIS_PORT ?? 6379);
+
+  return {
+    host: process.env.REDIS_HOST ?? "localhost",
+    port: Number.isFinite(port) ? port : 6379,
+    password: process.env.REDIS_PASSWORD,
+  };
+}
+
 function getRedis(): Redis | null {
   if (redisInitialized) return redis;
   redisInitialized = true;
 
   try {
-    const instance = new Redis({
-      host: process.env.REDIS_HOST ?? "localhost",
-      port: Number(process.env.REDIS_PORT ?? 6379),
+    const connection = getRedisConnectionOptions();
+    const options = {
       password: process.env.REDIS_PASSWORD,
       maxRetriesPerRequest: DEFAULT_REDIS_MAX_RETRIES,
       connectTimeout: DEFAULT_REDIS_CONNECT_TIMEOUT_MS,
       lazyConnect: true,
       retryStrategy: () => null,
       enableOfflineQueue: false,
-    });
+    };
+    const instance = new Redis({ ...connection, ...options });
 
     instance.on("error", () => undefined);
 
@@ -35,7 +45,7 @@ function getRedis(): Redis | null {
   }
 }
 
-async function getReadyRedis(): Promise<Redis | null> {
+export async function getReadyRedis(): Promise<Redis | null> {
   if (process.env.NODE_ENV === "test" && process.env.USE_REDIS_IN_TEST !== "true") {
     return null;
   }
@@ -110,8 +120,7 @@ export async function getCache<T>(key: string): Promise<T | null> {
           return null;
         }
       }
-    } catch {
-    }
+    } catch {}
   }
 
   return memoryGet<T>(key);
@@ -124,8 +133,7 @@ export async function setCache(key: string, value: unknown, ttlSeconds: number):
     try {
       await client.setex(key, ttlSeconds, JSON.stringify(value));
       return;
-    } catch {
-    }
+    } catch {}
   }
 
   memorySet(key, value, ttlSeconds);
@@ -137,8 +145,7 @@ export async function deleteCache(key: string): Promise<void> {
   if (client) {
     try {
       await client.del(key);
-    } catch {
-    }
+    } catch {}
   }
 
   memoryCache.delete(key);

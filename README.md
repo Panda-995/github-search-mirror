@@ -21,7 +21,6 @@
 - **数据库**: PostgreSQL + Drizzle ORM（带内存回退）
 - **认证**: NextAuth.js (邮箱密码登录)
 - **搜索**: Meilisearch
-- **向量数据库**: Qdrant（预留给语义搜索扩展）
 - **缓存**: Redis + 内存缓存双级缓存
 - **AI 服务**: Anthropic Claude / OpenAI / Gemini / DeepSeek / 自定义
 - **部署**: Docker + Docker Compose + Traefik
@@ -34,7 +33,6 @@
 - PostgreSQL 16（可选，支持内存数据库回退）
 - Redis 7（可选）
 - Meilisearch 1.8
-- Qdrant（可选，预留给语义搜索扩展）
 
 ### 本地开发
 
@@ -60,12 +58,12 @@ cp .env.example .env.local
 
 必需的环境变量：
 
-| 变量                 | 说明                                               |
-| -------------------- | -------------------------------------------------- |
-| `DATABASE_URL`       | PostgreSQL 连接字符串（可选，未配置时使用内存数据库） |
-| `AUTH_SECRET`        | NextAuth 密钥                                      |
-| `ADMIN_EMAILS`       | 管理员邮箱列表，多个邮箱用英文逗号分隔             |
-| `GITHUB_TOKEN`       | 可选的 GitHub API Token，用于提高公共 API 速率限制 |
+| 变量           | 说明                                                  |
+| -------------- | ----------------------------------------------------- |
+| `DATABASE_URL` | PostgreSQL 连接字符串（可选，未配置时使用内存数据库） |
+| `AUTH_SECRET`  | NextAuth 密钥                                         |
+| `ADMIN_EMAILS` | 管理员邮箱列表，多个邮箱用英文逗号分隔                |
+| `GITHUB_TOKEN` | 可选的 GitHub API Token，用于提高公共 API 速率限制    |
 
 4. **初始化数据库**
 
@@ -90,29 +88,42 @@ cp .env.example .env
 # 编辑 .env 填入所有配置
 ```
 
-**Docker 部署必需的环境变量：**
+**Docker 最小必填 `.env` 模板（与 `.env.example` 一致）：**
 
-| 变量                  | 说明                                                          | 必需 |
-| --------------------- | ------------------------------------------------------------- | ---- |
-| `POSTGRES_PASSWORD`   | PostgreSQL 数据库密码                                         | 是   |
-| `AUTH_SECRET`         | NextAuth 加密密钥                                             | 是   |
-| `ADMIN_EMAILS`        | 管理员邮箱列表，多个邮箱用英文逗号分隔                        | 否   |
-| `GITHUB_TOKEN`        | GitHub API Token，用于提高公共 API 速率限制                   | 否   |
-| `MEILISEARCH_API_KEY` | Meilisearch 主密钥                                            | 是   |
-| `REDIS_PASSWORD`      | Redis 密码                                                    | 否   |
-| `QDRANT_API_KEY`      | Qdrant API 密钥；Docker 部署会注入到 Qdrant 服务              | 建议 |
-| `ANTHROPIC_API_KEY`   | Anthropic Claude API 密钥                                     | 否   |
-| `OPENAI_API_KEY`      | OpenAI API 密钥                                               | 否   |
-| `DEEPSEEK_API_KEY`    | DeepSeek API 密钥                                             | 否   |
-| `GEMINI_API_KEY`      | Gemini API 密钥                                               | 否   |
-| `MIRROR_BASE_URL`     | 可选的 Git 镜像服务基础 URL；未配置时 clone URL 回退到 GitHub | 否   |
+```env
+POSTGRES_PASSWORD=change_me_postgres_password
+AUTH_SECRET=change_me_auth_secret
+MEILISEARCH_API_KEY=change_me_meilisearch_master_key
+REDIS_PASSWORD=change_me_redis_password
+```
 
-**注意：** Docker Compose 会自动构建 `DATABASE_URL` 等连接字符串，无需手动设置。首次创建 PostgreSQL 数据卷时，`scripts/init.sql` 会初始化业务表；已有旧数据卷时请运行 `npm run db:push` 或执行迁移同步 schema。
+**最小必填变量说明：**
+
+| 变量                  | 说明                                                         | 必需 |
+| --------------------- | ------------------------------------------------------------ | ---- |
+| `POSTGRES_PASSWORD`   | PostgreSQL 数据库密码                                        | 是   |
+| `AUTH_SECRET`         | NextAuth 加密密钥                                            | 是   |
+| `MEILISEARCH_API_KEY` | Meilisearch 主密钥                                           | 是   |
+| `REDIS_PASSWORD`      | Redis 密码（用于 compose 中的 `redis-server --requirepass`） | 是   |
+
+**可选变量（按需追加到 `.env`）：**
+
+| 变量                | 说明                                                          |
+| ------------------- | ------------------------------------------------------------- |
+| `ADMIN_EMAILS`      | 管理员邮箱列表，多个邮箱用英文逗号分隔                        |
+| `GITHUB_TOKEN`      | GitHub API Token，用于提高公共 API 速率限制                   |
+| `ANTHROPIC_API_KEY` | Anthropic Claude API 密钥                                     |
+| `OPENAI_API_KEY`    | OpenAI API 密钥                                               |
+| `DEEPSEEK_API_KEY`  | DeepSeek API 密钥                                             |
+| `GEMINI_API_KEY`    | Gemini API 密钥                                               |
+| `MIRROR_BASE_URL`   | 可选的 Git 镜像服务基础 URL；未配置时 clone URL 回退到 GitHub |
+
+**注意：** Docker Compose 会自动构建 `DATABASE_URL` 等连接字符串，无需手动设置。首次创建 PostgreSQL 数据卷时，`scripts/init.sql` 会初始化业务表；已有旧数据卷时请运行 `npm run db:migrate` 同步 schema。
 
 2. **启动所有服务**
 
 ```bash
-docker-compose up -d
+docker-compose up --build -d
 ```
 
 3. **查看服务状态**

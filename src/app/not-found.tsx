@@ -12,7 +12,10 @@ export default function NotFoundPage() {
           border: "1px solid var(--border-subtle)",
         }}
       >
-        <div className="flex items-center justify-center h-14 w-14 rounded-2xl mb-4" style={{ background: "var(--surface-100)" }}>
+        <div
+          className="flex items-center justify-center h-14 w-14 rounded-2xl mb-4"
+          style={{ background: "var(--surface-100)" }}
+        >
           <Search style={{ width: 28, height: 28, color: "var(--surface-400)" }} />
         </div>
         <h1 className="text-4xl font-bold mb-2" style={{ color: "var(--surface-900)" }}>

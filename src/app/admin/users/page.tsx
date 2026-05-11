@@ -45,15 +45,6 @@ export default async function UsersPage() {
                   fontWeight: "var(--font-weight-semibold)",
                 }}
               >
-                GitHub ID
-              </th>
-              <th
-                className="px-4 py-3 text-left"
-                style={{
-                  color: "var(--color-text-heading)",
-                  fontWeight: "var(--font-weight-semibold)",
-                }}
-              >
                 角色
               </th>
               <th
@@ -97,9 +88,6 @@ export default async function UsersPage() {
                       </p>
                     </div>
                   </div>
-                </td>
-                <td className="px-4 py-3" style={{ color: "var(--color-text-muted)" }}>
-                  {user.githubId}
                 </td>
                 <td className="px-4 py-3">
                   <span

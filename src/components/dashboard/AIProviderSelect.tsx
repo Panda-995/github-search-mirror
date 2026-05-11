@@ -18,10 +18,7 @@ export function AIProviderSelect() {
 
   return (
     <div>
-      <label
-        className="text-xs font-medium block mb-2"
-        style={{ color: "var(--color-text-body)" }}
-      >
+      <label className="text-xs font-medium block mb-2" style={{ color: "var(--color-text-body)" }}>
         默认 AI 提供商
       </label>
       <div className="relative">
@@ -36,10 +33,7 @@ export function AIProviderSelect() {
         >
           <div>
             <span className="font-medium">{current.name}</span>
-            <span
-              className="ml-2 text-xs"
-              style={{ color: "var(--color-text-muted)" }}
-            >
+            <span className="ml-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
               {current.description}
             </span>
           </div>
@@ -56,10 +50,7 @@ export function AIProviderSelect() {
 
         {isOpen && (
           <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setIsOpen(false)}
-            />
+            <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
             <div
               className="absolute left-0 right-0 top-full mt-1 z-20 overflow-hidden"
               style={{
@@ -79,7 +70,8 @@ export function AIProviderSelect() {
                   className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-left transition-colors"
                   style={{
                     background: selected === provider.id ? "var(--color-bg-hover)" : "transparent",
-                    color: selected === provider.id ? "var(--color-primary)" : "var(--color-text-body)",
+                    color:
+                      selected === provider.id ? "var(--color-primary)" : "var(--color-text-body)",
                   }}
                   onMouseEnter={(e) => {
                     if (selected !== provider.id) {
@@ -96,7 +88,12 @@ export function AIProviderSelect() {
                     <span className="font-medium">{provider.name}</span>
                     <span
                       className="ml-2 text-xs"
-                      style={{ color: selected === provider.id ? "var(--color-primary)" : "var(--color-text-muted)" }}
+                      style={{
+                        color:
+                          selected === provider.id
+                            ? "var(--color-primary)"
+                            : "var(--color-text-muted)",
+                      }}
                     >
                       {provider.description}
                     </span>

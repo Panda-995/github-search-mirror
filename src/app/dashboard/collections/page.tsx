@@ -21,19 +21,13 @@ export default async function CollectionsPage() {
     redirect("/login");
   }
 
-  let collectionsWithCount: { id: string; name: string; isPublic: boolean | null; count: number }[] = [];
-
-  try {
-    const collections = await getCollections(session.user.id);
-    collectionsWithCount = await Promise.all(
-      collections.map(async (item: CollectionItem) => {
-        const favs = await getFavorites(session.user.id, item.id);
-        return { ...item, count: favs.length };
-      })
-    );
-  } catch {
-    collectionsWithCount = [];
-  }
+  const collections = await getCollections(session.user.id);
+  const collectionsWithCount = await Promise.all(
+    collections.map(async (item: CollectionItem) => {
+      const favs = await getFavorites(session.user.id, item.id);
+      return { ...item, count: favs.length };
+    })
+  );
 
   return (
     <>
@@ -59,10 +53,7 @@ export default async function CollectionsPage() {
                   >
                     收藏夹
                   </h1>
-                  <p
-                    className="text-sm mt-0.5"
-                    style={{ color: "var(--color-text-muted)" }}
-                  >
+                  <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
                     管理你收藏的项目
                   </p>
                 </div>
@@ -71,12 +62,13 @@ export default async function CollectionsPage() {
                   action={async (formData) => {
                     "use server";
                     const name = formData.get("name") as string;
+                    const isPublic = formData.get("isPublic") === "on";
                     if (name && session?.user?.id) {
-                      await createCollection(session.user.id, name, false);
+                      await createCollection(session.user.id, name, isPublic);
                       redirect("/dashboard/collections");
                     }
                   }}
-                  className="flex items-center gap-2"
+                  className="flex flex-wrap items-center gap-2 justify-end"
                 >
                   <input
                     type="text"
@@ -86,6 +78,13 @@ export default async function CollectionsPage() {
                     className="input"
                     style={{ width: 160 }}
                   />
+                  <label
+                    className="inline-flex items-center gap-1.5 text-xs"
+                    style={{ color: "var(--color-text-muted)" }}
+                  >
+                    <input type="checkbox" name="isPublic" />
+                    公开
+                  </label>
                   <button type="submit" className="btn-primary">
                     <Plus style={{ width: 16, height: 16 }} />
                     创建

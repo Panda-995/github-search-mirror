@@ -24,7 +24,10 @@ export default function ErrorPage({
           border: "1px solid var(--border-subtle)",
         }}
       >
-        <div className="flex items-center justify-center h-14 w-14 rounded-2xl mb-4" style={{ background: "#fef2f2" }}>
+        <div
+          className="flex items-center justify-center h-14 w-14 rounded-2xl mb-4"
+          style={{ background: "#fef2f2" }}
+        >
           <AlertCircle style={{ width: 28, height: 28, color: "#dc2626" }} />
         </div>
         <h2 className="text-xl font-bold mb-2" style={{ color: "var(--surface-900)" }}>

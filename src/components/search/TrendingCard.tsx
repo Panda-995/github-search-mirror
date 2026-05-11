@@ -11,7 +11,6 @@ interface TrendingCardProps {
 }
 
 export function TrendingCard({ repo, rank }: TrendingCardProps) {
-
   const getRankBadge = (rank: number) => {
     if (rank === 1) {
       return (
@@ -23,20 +22,32 @@ export function TrendingCard({ repo, rank }: TrendingCardProps) {
     if (rank === 2) {
       return (
         <div className="rank-badge rank-badge-2">
-          <span style={{ fontSize: "var(--font-size-caption)", fontWeight: "var(--font-weight-bold)" }}>2</span>
+          <span
+            style={{ fontSize: "var(--font-size-caption)", fontWeight: "var(--font-weight-bold)" }}
+          >
+            2
+          </span>
         </div>
       );
     }
     if (rank === 3) {
       return (
         <div className="rank-badge rank-badge-3">
-          <span style={{ fontSize: "var(--font-size-caption)", fontWeight: "var(--font-weight-bold)" }}>3</span>
+          <span
+            style={{ fontSize: "var(--font-size-caption)", fontWeight: "var(--font-weight-bold)" }}
+          >
+            3
+          </span>
         </div>
       );
     }
     return (
       <div className="rank-badge rank-badge-other">
-        <span style={{ fontSize: "var(--font-size-caption)", fontWeight: "var(--font-weight-bold)" }}>{rank}</span>
+        <span
+          style={{ fontSize: "var(--font-size-caption)", fontWeight: "var(--font-weight-bold)" }}
+        >
+          {rank}
+        </span>
       </div>
     );
   };
@@ -44,9 +55,7 @@ export function TrendingCard({ repo, rank }: TrendingCardProps) {
   return (
     <div className="list-item-card flex items-start gap-4" style={{ padding: "20px 24px" }}>
       {/* Rank */}
-      <div className="flex-shrink-0 pt-0.5">
-        {getRankBadge(rank)}
-      </div>
+      <div className="flex-shrink-0 pt-0.5">{getRankBadge(rank)}</div>
 
       <div className="min-w-0 flex-1">
         {/* Title */}
@@ -59,7 +68,8 @@ export function TrendingCard({ repo, rank }: TrendingCardProps) {
             color: "var(--color-primary)",
           }}
         >
-          {repo.owner}/<span style={{ fontWeight: "var(--font-weight-semibold)" }}>{repo.name}</span>
+          {repo.owner}/
+          <span style={{ fontWeight: "var(--font-weight-semibold)" }}>{repo.name}</span>
         </Link>
 
         {/* Description */}
@@ -105,20 +115,14 @@ export function TrendingCard({ repo, rank }: TrendingCardProps) {
           </span>
 
           {repo.language && (
-            <span
-              className="text-xs font-medium"
-              style={{ color: "var(--color-text-muted)" }}
-            >
+            <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
               {repo.language}
             </span>
           )}
 
           {/* Trending data - green with up icon */}
-          <span
-            className="flex items-center gap-1 ml-auto data-badge"
-          >
-            <TrendingUp style={{ width: 14, height: 14 }} />
-            +{formatNumber(repo.stars_today)}
+          <span className="flex items-center gap-1 ml-auto data-badge">
+            <TrendingUp style={{ width: 14, height: 14 }} />+{formatNumber(repo.stars_today)}
           </span>
         </div>
       </div>

@@ -38,25 +38,26 @@ export default async function SettingsPage() {
                 >
                   账号设置
                 </h1>
-                <p
-                  className="text-sm mt-0.5"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
+                <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
                   管理你的个人信息和偏好
                 </p>
               </div>
 
               <SettingsForm
-                initialSettings={settings ?? {
-                  name: session.user.name ?? "",
-                  githubToken: "",
-                  aiConfig: {
-                    provider: "claude",
-                    model: "",
-                    apiEndpoint: "",
-                    apiKey: "",
-                  },
-                }}
+                initialSettings={
+                  settings ?? {
+                    name: session.user.name ?? "",
+                    githubToken: "",
+                    githubTokenConfigured: false,
+                    aiConfig: {
+                      provider: "claude",
+                      model: "",
+                      apiEndpoint: "",
+                      apiKey: "",
+                      apiKeyConfigured: false,
+                    },
+                  }
+                }
               />
             </div>
           </div>

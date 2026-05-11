@@ -1,28 +1,29 @@
-version: "3.8"
-
 services:
   app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ghcr.io/panda-995/gitmirror:latest
     restart: always
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/github_mirror
-      - MEILISEARCH_URL=http://meilisearch:7700
-      - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY}
-      - REDIS_URL=redis://default:${REDIS_PASSWORD}@redis:6379
-      - QDRANT_URL=http://qdrant:6333
-      - QDRANT_API_KEY=${QDRANT_API_KEY}
-      - AUTH_SECRET=${AUTH_SECRET}
-      - ADMIN_EMAILS=${ADMIN_EMAILS}
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - MIRROR_BASE_URL=${MIRROR_BASE_URL}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - CUSTOM_AI_BASE_URL=${CUSTOM_AI_BASE_URL}
-      - CUSTOM_AI_API_KEY=${CUSTOM_AI_API_KEY}
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/github_mirror
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY:?MEILISEARCH_API_KEY is required}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - AUTH_SECRET=${AUTH_SECRET:?AUTH_SECRET is required}
+      - ADMIN_EMAILS=${ADMIN_EMAILS:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - MIRROR_BASE_URL=${MIRROR_BASE_URL:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - CUSTOM_AI_BASE_URL=${CUSTOM_AI_BASE_URL:-}
+      - CUSTOM_AI_API_KEY=${CUSTOM_AI_API_KEY:-}
       - NODE_ENV=production
     depends_on:
       postgres:
@@ -30,8 +31,6 @@ services:
       meilisearch:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      qdrant:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
@@ -44,7 +43,7 @@ services:
     image: postgres:16-alpine
     restart: always
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       - POSTGRES_DB=github_mirror
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -59,7 +58,7 @@ services:
     image: getmeili/meilisearch:v1.8
     restart: always
     environment:
-      - MEILI_MASTER_KEY=${MEILISEARCH_API_KEY}
+      - MEILI_MASTER_KEY=${MEILISEARCH_API_KEY:?MEILISEARCH_API_KEY is required}
     volumes:
       - meili_data:/meili_data
     healthcheck:
@@ -71,24 +70,13 @@ services:
   redis:
     image: redis:7-alpine
     restart: always
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  qdrant:
-    image: qdrant/qdrant:latest
-    restart: always
-    environment:
-      - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
-    volumes:
-      - qdrant_data:/qdrant/storage
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:6333/healthz"]
+      test: ["CMD-SHELL", 'redis-cli -a "$REDIS_PASSWORD" ping | grep PONG']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -97,4 +85,3 @@ volumes:
   postgres_data:
   meili_data:
   redis_data:
-  qdrant_data:

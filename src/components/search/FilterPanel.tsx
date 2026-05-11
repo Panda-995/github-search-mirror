@@ -128,7 +128,10 @@ export function FilterPanel() {
               height: 32,
               background: currentLanguage === lang ? "var(--color-bg-hover)" : "transparent",
               color: currentLanguage === lang ? "var(--color-primary)" : "var(--color-text-body)",
-              fontWeight: currentLanguage === lang ? "var(--font-weight-semibold)" : "var(--font-weight-regular)",
+              fontWeight:
+                currentLanguage === lang
+                  ? "var(--font-weight-semibold)"
+                  : "var(--font-weight-regular)",
             }}
           >
             {lang}
@@ -145,8 +148,12 @@ export function FilterPanel() {
             style={{
               height: 32,
               background: currentStars === range.value ? "var(--color-bg-hover)" : "transparent",
-              color: currentStars === range.value ? "var(--color-primary)" : "var(--color-text-body)",
-              fontWeight: currentStars === range.value ? "var(--font-weight-semibold)" : "var(--font-weight-regular)",
+              color:
+                currentStars === range.value ? "var(--color-primary)" : "var(--color-text-body)",
+              fontWeight:
+                currentStars === range.value
+                  ? "var(--font-weight-semibold)"
+                  : "var(--font-weight-regular)",
             }}
           >
             {range.label}
@@ -163,8 +170,12 @@ export function FilterPanel() {
             style={{
               height: 32,
               background: currentForks === range.value ? "var(--color-bg-hover)" : "transparent",
-              color: currentForks === range.value ? "var(--color-primary)" : "var(--color-text-body)",
-              fontWeight: currentForks === range.value ? "var(--font-weight-semibold)" : "var(--font-weight-regular)",
+              color:
+                currentForks === range.value ? "var(--color-primary)" : "var(--color-text-body)",
+              fontWeight:
+                currentForks === range.value
+                  ? "var(--font-weight-semibold)"
+                  : "var(--font-weight-regular)",
             }}
           >
             {range.label}
@@ -176,13 +187,19 @@ export function FilterPanel() {
         {UPDATE_RANGES.map((range) => (
           <button
             key={range.value}
-            onClick={() => applyFilter("updated", currentUpdated === range.value ? "" : range.value)}
+            onClick={() =>
+              applyFilter("updated", currentUpdated === range.value ? "" : range.value)
+            }
             className="flex items-center w-full px-2 py-1.5 text-sm rounded-md transition-colors"
             style={{
               height: 32,
               background: currentUpdated === range.value ? "var(--color-bg-hover)" : "transparent",
-              color: currentUpdated === range.value ? "var(--color-primary)" : "var(--color-text-body)",
-              fontWeight: currentUpdated === range.value ? "var(--font-weight-semibold)" : "var(--font-weight-regular)",
+              color:
+                currentUpdated === range.value ? "var(--color-primary)" : "var(--color-text-body)",
+              fontWeight:
+                currentUpdated === range.value
+                  ? "var(--font-weight-semibold)"
+                  : "var(--font-weight-regular)",
             }}
           >
             {range.label}

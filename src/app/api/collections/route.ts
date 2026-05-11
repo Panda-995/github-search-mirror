@@ -16,8 +16,9 @@ export async function GET() {
   try {
     const collections = await getCollections(session.user.id);
     return NextResponse.json({ collections });
-  } catch {
-    return NextResponse.json({ collections: [] });
+  } catch (error) {
+    const { message, status } = jsonError(error, "获取收藏夹失败");
+    return NextResponse.json({ error: message, collections: [] }, { status });
   }
 }
 
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await readJsonBody<Record<string, unknown>>(req, COLLECTION_BODY_MAX_BYTES);
     const name = typeof body.name === "string" ? body.name.trim() : "";
+    const isPublic = typeof body.isPublic === "boolean" ? body.isPublic : false;
     if (!name) {
       return NextResponse.json({ error: "name is required" }, { status: 400 });
     }
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
     const collection = await createCollection(
       session.user.id,
       name.slice(0, COLLECTION_NAME_MAX_LENGTH),
-      (body.isPublic as boolean) ?? false
+      isPublic
     );
     return NextResponse.json({ collection });
   } catch (error) {

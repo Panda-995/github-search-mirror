@@ -5,7 +5,6 @@ import { SearchBox } from "@/components/search/SearchBox";
 import { FilterPanel } from "@/components/search/FilterPanel";
 import { RepoList } from "@/components/search/RepoList";
 import { SortSelect } from "@/components/search/SortSelect";
-import { parseSearchQuery } from "@/lib/search-parser";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,14 +13,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getGitHubTokenForUser } from "@/server/github-token";
-import {
-  normalizeSearchQuery,
-  parseSearchOrder,
-  parseSearchPage,
-  parseSearchSort,
-  sanitizeQualifierValue,
-} from "@/lib/search-params";
-import type { SearchFilters } from "@/types";
+import { buildSearchRequest } from "@/lib/search-request";
 
 interface SearchParams {
   q?: string;
@@ -40,73 +32,35 @@ interface SearchPageProps {
 
 const HOT_KEYWORDS = ["react", "vue", "python", "docker", "ai", "typescript"];
 
-function parseNumericFilter(
-  value: string | undefined,
-  minKey: "stars_min" | "forks_min",
-  maxKey: "stars_max" | "forks_max",
-  filters: SearchFilters
-) {
-  if (!value) return;
-  const match = value.match(/^([<>]=?|=)?(\d+)$/);
-  if (!match) return;
-
-  const operator = match[1] || ">=";
-  const amount = Number(match[2]);
-  if (operator === "<" || operator === "<=") {
-    filters[maxKey] = amount;
-  } else {
-    filters[minKey] = amount;
-  }
-}
-
-function daysAgo(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return date.toISOString().split("T")[0];
-}
-
 async function SearchResults({ params }: { params: SearchParams }) {
-  const query = params.q || "";
-  const normalizedQuery = normalizeSearchQuery(query);
-  const page = parseSearchPage(params.page);
-  const parsed = parseSearchQuery(normalizedQuery);
-
-  const filters: SearchFilters = { ...parsed.filters };
-  const language = sanitizeQualifierValue(params.language);
-  if (language) filters.language = [language];
-  parseNumericFilter(params.stars, "stars_min", "stars_max", filters);
-  parseNumericFilter(params.forks, "forks_min", "forks_max", filters);
-  if (params.updated) {
-    const match = params.updated.match(/^>(\d+)d$/);
-    if (match) filters.pushed_after = daysAgo(Number(match[1]));
-  }
-
-  const sort = parseSearchSort(params.sort) || parsed.sort || undefined;
-  const order = parseSearchOrder(params.order) || parsed.order || undefined;
-  const perPage = 20;
+  const searchRequest = buildSearchRequest(params);
 
   let results = null;
   let error = null;
 
-  if (normalizedQuery) {
+  if (searchRequest.normalizedQuery) {
     try {
       const session = await getServerSession(authOptions);
       const token = await getGitHubTokenForUser(session?.user?.id);
       results = await searchRepositories(
-        parsed.query,
-        filters,
+        searchRequest.searchQuery,
+        searchRequest.filters,
         {
-          page,
-          perPage,
-          sort,
-          order,
+          page: searchRequest.page,
+          perPage: searchRequest.perPage,
+          sort: searchRequest.sort,
+          order: searchRequest.order,
         },
         token
       );
       // Save search history if user is logged in
       if (session?.user?.id) {
         try {
-          await saveSearchHistory(session.user.id, normalizedQuery, filters);
+          await saveSearchHistory(
+            session.user.id,
+            searchRequest.normalizedQuery,
+            searchRequest.filters
+          );
         } catch {
           // Ignore history save errors
         }
@@ -140,7 +94,7 @@ async function SearchResults({ params }: { params: SearchParams }) {
         </div>
       )}
 
-      {!query && !error && (
+      {!searchRequest.normalizedQuery && !error && (
         <div className="card flex flex-col items-center justify-center py-12 sm:py-16 px-4">
           <div
             className="flex items-center justify-center h-14 w-14 rounded-2xl mb-5"
@@ -167,7 +121,7 @@ async function SearchResults({ params }: { params: SearchParams }) {
         </div>
       )}
 
-      {query && results && results.total === 0 && !error && (
+      {searchRequest.normalizedQuery && results && results.total === 0 && !error && (
         <div className="card flex flex-col items-center justify-center py-16 sm:py-20 px-4">
           <div
             className="flex items-center justify-center h-14 w-14 rounded-2xl mb-5"
@@ -195,8 +149,11 @@ async function SearchResults({ params }: { params: SearchParams }) {
               {results.total.toLocaleString()}
             </span>{" "}
             个结果
-            {query && (
-              <span style={{ color: "var(--color-text-muted)" }}> for &quot;{query}&quot;</span>
+            {searchRequest.normalizedQuery && (
+              <span style={{ color: "var(--color-text-muted)" }}>
+                {" "}
+                for &quot;{searchRequest.normalizedQuery}&quot;
+              </span>
             )}
           </p>
           <SortSelect />

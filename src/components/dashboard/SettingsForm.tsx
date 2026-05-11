@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { User, Key, Bot, Globe, Cpu, Save, Check, AlertCircle, Loader2 } from "lucide-react";
+import {
+  User,
+  Key,
+  Bot,
+  Globe,
+  Cpu,
+  Save,
+  Check,
+  AlertCircle,
+  Loader2,
+  Trash2,
+} from "lucide-react";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import { updateUserSettings } from "@/server/settings.actions";
 
@@ -10,11 +21,15 @@ interface AIConfig {
   model: string;
   apiEndpoint: string;
   apiKey: string;
+  apiKeyConfigured?: boolean;
+  clearApiKey?: boolean;
 }
 
 interface Settings {
   name: string;
   githubToken: string;
+  githubTokenConfigured?: boolean;
+  clearGithubToken?: boolean;
   aiConfig: AIConfig;
 }
 
@@ -42,7 +57,19 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
     setSaveMessage("");
 
     try {
-      await updateUserSettings(settings);
+      const result = await updateUserSettings(settings);
+      setSettings((prev) => ({
+        ...prev,
+        githubToken: "",
+        githubTokenConfigured: result.githubTokenConfigured,
+        clearGithubToken: false,
+        aiConfig: {
+          ...prev.aiConfig,
+          apiKey: "",
+          apiKeyConfigured: result.aiApiKeyConfigured,
+          clearApiKey: false,
+        },
+      }));
       setSaveStatus("success");
       setSaveMessage("设置已保存");
       setTimeout(() => setSaveStatus("idle"), 3000);
@@ -58,6 +85,27 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
     setSettings((prev) => ({
       ...prev,
       aiConfig: { ...prev.aiConfig, ...updates },
+    }));
+  };
+
+  const clearGitHubToken = () => {
+    setSettings((prev) => ({
+      ...prev,
+      githubToken: "",
+      githubTokenConfigured: false,
+      clearGithubToken: true,
+    }));
+  };
+
+  const clearAIKey = () => {
+    setSettings((prev) => ({
+      ...prev,
+      aiConfig: {
+        ...prev.aiConfig,
+        apiKey: "",
+        apiKeyConfigured: false,
+        clearApiKey: true,
+      },
     }));
   };
 
@@ -91,9 +139,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             <input
               type="text"
               value={settings.name}
-              onChange={(e) =>
-                setSettings((prev) => ({ ...prev, name: e.target.value }))
-              }
+              onChange={(e) => setSettings((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="输入你的用户名"
               className="input w-full"
             />
@@ -131,16 +177,27 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
               type="password"
               value={settings.githubToken}
               onChange={(e) =>
-                setSettings((prev) => ({ ...prev, githubToken: e.target.value }))
+                setSettings((prev) => ({
+                  ...prev,
+                  githubToken: e.target.value,
+                  clearGithubToken: false,
+                }))
               }
-              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              placeholder={
+                settings.githubTokenConfigured ? "已配置，留空保持不变" : "ghp_xxxxxxxxxxxxxxxxxxxx"
+              }
               className="input w-full"
             />
-            <p
-              className="mt-1.5 text-xs"
-              style={{ color: "var(--color-text-muted)" }}
-            >
+            {settings.githubTokenConfigured && (
+              <button type="button" onClick={clearGitHubToken} className="btn-danger mt-2 text-xs">
+                <Trash2 style={{ width: 12, height: 12 }} />
+                清除 Token
+              </button>
+            )}
+            <p className="mt-1.5 text-xs" style={{ color: "var(--color-text-muted)" }}>
               配置 GitHub Personal Access Token 可将 API 速率限制从每小时 60 次提升至 5000 次。
+              {settings.githubTokenConfigured ? " 当前已配置，输入新 Token 可替换。" : ""}
+              {settings.clearGithubToken ? " 保存后将删除当前 Token。" : ""}
               <a
                 href="https://github.com/settings/tokens"
                 target="_blank"
@@ -186,6 +243,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                 const isSelected = settings.aiConfig.provider === provider.id;
                 return (
                   <button
+                    type="button"
                     key={provider.id}
                     onClick={() => updateAIConfig({ provider: provider.id })}
                     className="relative flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-lg text-sm transition-all"
@@ -196,9 +254,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                       border: isSelected
                         ? "2px solid var(--color-primary)"
                         : "1px solid var(--color-border)",
-                      color: isSelected
-                        ? "var(--color-primary)"
-                        : "var(--color-text-body)",
+                      color: isSelected ? "var(--color-primary)" : "var(--color-text-body)",
                     }}
                   >
                     <span className="text-lg leading-none">{provider.icon}</span>
@@ -206,9 +262,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                     <span
                       className="text-xs"
                       style={{
-                        color: isSelected
-                          ? "var(--color-primary)"
-                          : "var(--color-text-muted)",
+                        color: isSelected ? "var(--color-primary)" : "var(--color-text-muted)",
                       }}
                     >
                       {provider.description}
@@ -278,21 +332,30 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             <input
               type="password"
               value={settings.aiConfig.apiKey}
-              onChange={(e) => updateAIConfig({ apiKey: e.target.value })}
-              placeholder="输入你的 API Key"
+              onChange={(e) => updateAIConfig({ apiKey: e.target.value, clearApiKey: false })}
+              placeholder={
+                settings.aiConfig.apiKeyConfigured ? "已配置，留空保持不变" : "输入你的 API Key"
+              }
               className="input w-full"
             />
+            {settings.aiConfig.apiKeyConfigured && (
+              <button type="button" onClick={clearAIKey} className="btn-danger mt-2 text-xs">
+                <Trash2 style={{ width: 12, height: 12 }} />
+                清除 API Key
+              </button>
+            )}
+            {settings.aiConfig.clearApiKey && (
+              <p className="mt-1.5 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                保存后将删除当前 API Key。
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Save Button & Status */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="btn-primary"
-        >
+        <button type="button" onClick={handleSave} disabled={saving} className="btn-primary">
           {saving ? (
             <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />
           ) : (

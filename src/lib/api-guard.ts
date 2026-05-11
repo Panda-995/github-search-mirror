@@ -55,8 +55,32 @@ export function jsonError(error: unknown, fallbackMessage: string) {
     return { message: error.message, status: error.status };
   }
 
+  const message = error instanceof Error ? error.message : fallbackMessage;
+  if (isDatabaseErrorMessage(message)) {
+    return { message: "数据库服务暂时不可用", status: 503 };
+  }
+
   return {
-    message: error instanceof Error ? error.message : fallbackMessage,
+    message,
     status: 500,
   };
+}
+
+export function isDatabaseErrorMessage(message: string) {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("database unavailable") ||
+    normalized.includes("database initialization failed") ||
+    normalized.includes("database update failed") ||
+    normalized.includes("database_url") ||
+    normalized.includes("econnrefused") ||
+    normalized.includes("failed query") ||
+    normalized.includes("relation") ||
+    normalized.includes("column") ||
+    normalized.includes("does not exist") ||
+    normalized.includes("permission denied") ||
+    normalized.includes("connection") ||
+    normalized.includes("connect") ||
+    normalized.includes("timeout")
+  );
 }

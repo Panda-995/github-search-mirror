@@ -2,9 +2,12 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
 
-let dbInstance: ReturnType<typeof drizzle<typeof schema>> | null = null;
+type DrizzleDatabase = ReturnType<typeof drizzle<typeof schema>>;
+
+let dbInstance: DrizzleDatabase | null = null;
 let poolInstance: Pool | null = null;
 let commentsSchemaReady: Promise<void> | null = null;
+let memoryIdSequence = 0;
 
 type TableRecord = Record<string, unknown>;
 
@@ -37,8 +40,7 @@ type DrizzleQueryBuilder = {
   orderBy: (...args: unknown[]) => DrizzleQueryBuilder;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type DB = any;
+export type DB = Pick<DrizzleDatabase, "delete" | "insert" | "select" | "update">;
 
 const memoryStorage: MemoryStorage = {
   users: [],
@@ -67,6 +69,9 @@ function getPool() {
 
 function initDb() {
   if (dbInstance) return dbInstance;
+  if (process.env.NODE_ENV === "test" && process.env.USE_POSTGRES_IN_TEST !== "true") {
+    return null;
+  }
 
   try {
     const pool = getPool();
@@ -103,7 +108,6 @@ export async function ensureCommentsSchema() {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
           id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-          github_id varchar(255) UNIQUE,
           github_token text,
           password_hash text,
           email varchar(255) UNIQUE,
@@ -115,7 +119,6 @@ export async function ensureCommentsSchema() {
         );
 
         ALTER TABLE users ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid();
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS github_id varchar(255);
         ALTER TABLE users ADD COLUMN IF NOT EXISTS github_token text;
         ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash text;
         ALTER TABLE users ADD COLUMN IF NOT EXISTS email varchar(255);
@@ -166,6 +169,20 @@ export async function ensureCommentsSchema() {
   await commentsSchemaReady;
 }
 
+export async function checkDatabaseHealth() {
+  if (canUseMemoryDb()) {
+    return { ok: true, mode: "memory" };
+  }
+
+  const pool = getPool();
+  if (!pool) {
+    return { ok: false, mode: "unavailable" };
+  }
+
+  await pool.query("select 1");
+  return { ok: true, mode: "postgres" };
+}
+
 function getTableName(table: unknown): keyof MemoryStorage {
   if (!table) return "users";
   let name: string | undefined;
@@ -201,6 +218,52 @@ function getColumnPropName(column: unknown): string {
   return (col.name as string) || "";
 }
 
+function getRecordValue(item: TableRecord, propName: string) {
+  if (propName in item) return item[propName];
+  const camelPropName = propName.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
+  return item[camelPropName];
+}
+
+function getChunkText(chunk: unknown): string {
+  const value = (chunk as { value?: unknown }).value;
+  return Array.isArray(value) ? value.join("") : typeof value === "string" ? value : "";
+}
+
+function getParamValue(chunk: unknown): unknown {
+  if (chunk && typeof chunk === "object" && "value" in chunk) {
+    return (chunk as { value: unknown }).value;
+  }
+  return chunk;
+}
+
+function hasQueryChunks(value: unknown): value is { queryChunks: unknown[] } {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    Array.isArray((value as { queryChunks?: unknown }).queryChunks)
+  );
+}
+
+function evaluateSqlCondition(item: TableRecord, condition: unknown): boolean {
+  if (!hasQueryChunks(condition)) return true;
+
+  for (let idx = 0; idx < condition.queryChunks.length - 2; idx++) {
+    const column = condition.queryChunks[idx];
+    const operator = getChunkText(condition.queryChunks[idx + 1]);
+    if (!operator.includes("=")) continue;
+
+    const propName = getColumnPropName(column);
+    if (!propName) continue;
+
+    return getRecordValue(item, propName) === getParamValue(condition.queryChunks[idx + 2]);
+  }
+
+  const childConditions = condition.queryChunks.filter(hasQueryChunks);
+  return childConditions.length > 0
+    ? childConditions.every((child) => evaluateSqlCondition(item, child))
+    : true;
+}
+
 function applyCondition(
   items: TableRecord[],
   condition: FilterCondition | undefined
@@ -209,15 +272,15 @@ function applyCondition(
   return items.filter((item) => {
     if (condition.left && condition.right !== undefined) {
       const propName = getColumnPropName(condition.left);
-      return item[propName] === condition.right;
+      return getRecordValue(item, propName) === condition.right;
     }
     if (condition.conditions) {
       return condition.conditions.every((c) => {
         const propName = getColumnPropName(c.left);
-        return item[propName] === c.right;
+        return getRecordValue(item, propName) === c.right;
       });
     }
-    return true;
+    return evaluateSqlCondition(item, condition);
   });
 }
 
@@ -274,7 +337,7 @@ function memInsert(table: unknown) {
         const results = items.map((item, idx) => {
           const record = {
             ...item,
-            id: item.id ?? `mem-${Date.now()}-${idx}`,
+            id: item.id ?? `mem-${Date.now()}-${memoryIdSequence++}-${idx}`,
             createdAt: item.createdAt ?? new Date(),
             updatedAt: item.updatedAt ?? new Date(),
           };
@@ -455,6 +518,6 @@ export const db: DB = {
       },
     }),
   }),
-} as DB;
+} as unknown as DB;
 
 export { memoryStorage };
