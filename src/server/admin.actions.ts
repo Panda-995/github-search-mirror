@@ -3,8 +3,6 @@
 import { db, ensureCommentsSchema } from "@/db";
 import { favorites, searchHistory, users } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
-import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth/next";
 
 async function assertAdmin() {

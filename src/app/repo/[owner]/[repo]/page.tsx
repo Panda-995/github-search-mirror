@@ -315,7 +315,7 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
             readme={readme}
             description={repoData.description || ""}
           />
-          <RepoHealthCard repo={repoData} />
+          <RepoHealthCard repo={repoData as unknown as import("@/lib/repo-insights").RepoForHealth} />
         </div>
       </div>
     </>

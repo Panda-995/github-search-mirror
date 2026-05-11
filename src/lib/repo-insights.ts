@@ -90,7 +90,7 @@ function calculateMetrics(repo: RepoForHealth): RepoHealthMetrics {
     daysSincePush <= 365 ? 30 : 10
   );
 
-  const starsPerDay = repo.stargazers_count / daysSinceCreate;
+  const _starsPerDay = repo.stargazers_count / daysSinceCreate;
   const communityScore = clampScore(
     repo.stargazers_count >= 10000 ? 100 :
     repo.stargazers_count >= 5000 ? 90 :
@@ -151,7 +151,7 @@ function getGradeLabel(grade: string): string {
   }
 }
 
-function detectRisks(repo: RepoForHealth, metrics: RepoHealthMetrics): RiskItem[] {
+function detectRisks(repo: RepoForHealth, _metrics: RepoHealthMetrics): RiskItem[] {
   const risks: RiskItem[] = [];
 
   const daysSincePush = daysSince(repo.pushed_at);

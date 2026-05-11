@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     const { provider, customConfig } = await getUserAIConfig();
 
-    if (!customConfig.apiKey) {
+    if (!customConfig?.apiKey) {
       return NextResponse.json(
         { ok: false, error: "请先配置 API Key" },
         { status: 400 }
@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
 
     const config = {
       provider: (testProvider || provider) as any,
-      model: model || customConfig.model,
-      apiKey: apiKey || customConfig.apiKey,
-      apiEndpoint: apiEndpoint || customConfig.apiEndpoint,
+      model: model || customConfig?.model,
+      apiKey: apiKey || customConfig?.apiKey,
+      apiEndpoint: apiEndpoint || customConfig?.apiEndpoint,
     };
 
     const startTime = Date.now();

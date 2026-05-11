@@ -7,5 +7,3 @@ export const users = isSqlite ? sqliteSchema.users : pgSchema.users;
 export const collections = isSqlite ? sqliteSchema.collections : pgSchema.collections;
 export const favorites = isSqlite ? sqliteSchema.favorites : pgSchema.favorites;
 export const searchHistory = isSqlite ? sqliteSchema.searchHistory : pgSchema.searchHistory;
-
-export type { UserRole } from "./schema-pg";

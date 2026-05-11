@@ -16,16 +16,16 @@ interface TrendingRepo {
   stars: number;
   forks: number;
   rank?: number;
-  topics?: string[];
+  topics: string[];
   pushed_at: string;
   created_at: string;
   updated_at: string;
-  trend_score?: number;
-  estimated_new_stars?: number;
-  license?: string;
-  homepage?: string;
-  open_issues?: number;
-  watchers?: number;
+  trend_score: number;
+  estimated_new_stars: number;
+  license: string | null;
+  homepage: string | null;
+  open_issues: number;
+  watchers: number;
 }
 
 interface TrendingCardProps {
@@ -102,8 +102,9 @@ export function TrendingCard({ repo, rank = 0 }: TrendingCardProps) {
   const topRisk = health ? getTopRisk(health.risks) : null;
   const gradeColors = health ? (GRADE_COLORS[health.grade] || GRADE_COLORS.C) : null;
 
-  const trendScore = (repo as any).trend_score ?? Math.round(repo.stars * 0.05 + Math.random() * repo.stars * 0.1);
-  const estimatedNewStars = (repo as any).estimated_new_stars ?? Math.round(trendScore * 0.3);
+  const { trendScore, estimatedNewStars } = useMemo(() => {
+    return { trendScore: repo.trend_score, estimatedNewStars: repo.estimated_new_stars };
+  }, [repo]);
 
   return (
     <div className="list-item-card group" style={{ padding: "20px 24px" }}>

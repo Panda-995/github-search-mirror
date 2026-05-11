@@ -2,6 +2,8 @@ import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
 import { Pool } from "pg";
+import { existsSync, mkdirSync } from "fs";
+import { dirname } from "path";
 import * as schema from "./schema";
 import * as sqliteSchema from "./schema-sqlite";
 
@@ -75,11 +77,9 @@ function getSqliteDb() {
   
   // Ensure directory exists
   try {
-    const fs = require("fs");
-    const path = require("path");
-    const dir = path.dirname(dbPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    const dir = dirname(dbPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
     }
   } catch {
     // ignore
