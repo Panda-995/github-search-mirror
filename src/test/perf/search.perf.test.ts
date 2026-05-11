@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { benchmark, assertPerformance } from "./benchmark";
+import { benchmark, assertPerformance, logBenchmarkResult } from "./benchmark";
 import { searchRepositories } from "@/server/search.actions";
 import { getCache, setCache } from "@/lib/cache";
 import { mockRedis } from "../mocks/redis";
@@ -65,7 +65,7 @@ describe("Search Performance", () => {
       { iterations: 50, warmupIterations: 5 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(assertPerformance(result, 500, "avgTime")).toBe(true);
     expect(assertPerformance(result, 800, "p95Time")).toBe(true);
   });
@@ -107,7 +107,7 @@ describe("Search Performance", () => {
       { iterations: 20, warmupIterations: 2 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(assertPerformance(result, 2000, "avgTime")).toBe(true);
     expect(assertPerformance(result, 3000, "p95Time")).toBe(true);
   }, 10000);
@@ -151,7 +151,7 @@ describe("Search Performance", () => {
       { iterations: 20, warmupIterations: 2 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(assertPerformance(result, 2000, "avgTime")).toBe(true);
     expect(assertPerformance(result, 3000, "p95Time")).toBe(true);
   });
@@ -176,7 +176,7 @@ describe("Search Performance", () => {
       { iterations: 100, concurrency: 100, warmupIterations: 5 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(result.success).toBe(true);
     expect(result.errors).toBe(0);
     expect(result.throughput).toBeGreaterThan(10);

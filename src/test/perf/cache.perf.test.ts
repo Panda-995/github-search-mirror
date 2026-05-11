@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { benchmark, assertPerformance } from "./benchmark";
+import { benchmark, assertPerformance, logBenchmarkResult } from "./benchmark";
 
 const mockRedis = {
   data: new Map<string, string>(),
@@ -47,7 +47,7 @@ describe("Cache Performance", () => {
       { iterations: 100, warmupIterations: 5 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(assertPerformance(result, 50, "avgTime")).toBe(true);
     expect(assertPerformance(result, 100, "p95Time")).toBe(true);
   });
@@ -64,7 +64,7 @@ describe("Cache Performance", () => {
       { iterations: 100, warmupIterations: 5 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(assertPerformance(result, 30, "avgTime")).toBe(true);
     expect(assertPerformance(result, 60, "p95Time")).toBe(true);
   });
@@ -81,7 +81,7 @@ describe("Cache Performance", () => {
       { iterations: 100, warmupIterations: 5 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(assertPerformance(result, 30, "avgTime")).toBe(true);
     expect(assertPerformance(result, 60, "p95Time")).toBe(true);
   });
@@ -98,7 +98,7 @@ describe("Cache Performance", () => {
       { iterations: 100, concurrency: 100, warmupIterations: 5 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(result.success).toBe(true);
     expect(result.errors).toBe(0);
     expect(result.throughput).toBeGreaterThan(50);

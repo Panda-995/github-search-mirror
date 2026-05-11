@@ -18,7 +18,7 @@
     "test": "vitest run",
     "test:unit": "vitest run src/test/unit",
     "test:perf": "vitest run src/test/perf",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run src/test/unit --coverage"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

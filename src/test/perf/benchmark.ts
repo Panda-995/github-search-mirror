@@ -129,6 +129,12 @@ export function formatResult(result: BenchmarkResult): string {
   return lines.join("\n");
 }
 
+export function logBenchmarkResult(result: BenchmarkResult): void {
+  if (process.env.VERBOSE_BENCHMARKS === "true") {
+    console.log(result);
+  }
+}
+
 export function assertPerformance(
   result: BenchmarkResult,
   threshold: number,

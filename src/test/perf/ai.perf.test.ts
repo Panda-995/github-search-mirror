@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { benchmark, assertPerformance } from "./benchmark";
+import { benchmark, assertPerformance, logBenchmarkResult } from "./benchmark";
 import {
   callAI,
   translateReadme,
@@ -36,7 +36,7 @@ describe("AI Performance", () => {
       { iterations: 20, warmupIterations: 2 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(assertPerformance(result, 10000, "avgTime")).toBe(true);
     expect(assertPerformance(result, 15000, "p95Time")).toBe(true);
   });
@@ -64,7 +64,7 @@ describe("AI Performance", () => {
       { iterations: 10, warmupIterations: 2 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(assertPerformance(result, 10000, "avgTime")).toBe(true);
     expect(assertPerformance(result, 15000, "p95Time")).toBe(true);
   });
@@ -99,7 +99,7 @@ describe("AI Performance", () => {
       { iterations: 10, warmupIterations: 2 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(assertPerformance(result, 10000, "avgTime")).toBe(true);
     expect(assertPerformance(result, 15000, "p95Time")).toBe(true);
   });
@@ -125,7 +125,7 @@ describe("AI Performance", () => {
       { iterations: 20, warmupIterations: 2 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(assertPerformance(result, 10000, "avgTime")).toBe(true);
     expect(assertPerformance(result, 15000, "p95Time")).toBe(true);
   });
@@ -153,7 +153,7 @@ describe("AI Performance", () => {
       { iterations: 15, warmupIterations: 2 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(assertPerformance(result, 10000, "avgTime")).toBe(true);
     expect(assertPerformance(result, 15000, "p95Time")).toBe(true);
   });
@@ -181,7 +181,7 @@ describe("AI Performance", () => {
       { iterations: 50, concurrency: 50, warmupIterations: 3 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(result.success).toBe(true);
     expect(result.errors).toBe(0);
     expect(result.throughput).toBeGreaterThan(5);

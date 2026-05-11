@@ -15,6 +15,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       - AUTH_SECRET=${AUTH_SECRET:?AUTH_SECRET is required}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - ADMIN_EMAILS=${ADMIN_EMAILS:-}
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - MIRROR_BASE_URL=${MIRROR_BASE_URL:-}

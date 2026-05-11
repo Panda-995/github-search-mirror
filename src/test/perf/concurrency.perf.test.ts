@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { benchmark } from "./benchmark";
+import { benchmark, logBenchmarkResult } from "./benchmark";
 import { searchRepositories } from "@/server/search.actions";
 import { getCache, setCache } from "@/lib/cache";
 import { mockRedis } from "../mocks/redis";
@@ -65,7 +65,7 @@ describe("Concurrency & Load Tests", () => {
       { iterations: 100, concurrency: 100, warmupIterations: 5 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(result.success).toBe(true);
     expect(result.errors).toBe(0);
     expect(result.throughput).toBeGreaterThan(20);
@@ -84,7 +84,7 @@ describe("Concurrency & Load Tests", () => {
       { iterations: 200, concurrency: 200, warmupIterations: 5 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(result.success).toBe(true);
     expect(result.errors).toBe(0);
     expect(result.throughput).toBeGreaterThan(20);
@@ -144,7 +144,7 @@ describe("Concurrency & Load Tests", () => {
       { iterations: 50, concurrency: 50, warmupIterations: 3 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(result.success).toBe(true);
     expect(result.errors).toBe(0);
     expect(result.throughput).toBeGreaterThan(5);
@@ -163,7 +163,7 @@ describe("Concurrency & Load Tests", () => {
       { iterations: 500, concurrency: 50, warmupIterations: 10, maxDuration: 15000 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(result.success).toBe(true);
     expect(result.errors).toBe(0);
     expect(result.iterations).toBeGreaterThanOrEqual(400);
@@ -182,7 +182,7 @@ describe("Concurrency & Load Tests", () => {
       { iterations: 50, concurrency: 50, warmupIterations: 0, maxDuration: 5000 }
     );
 
-    console.log(result);
+    logBenchmarkResult(result);
     expect(result.success).toBe(true);
     expect(result.errors).toBe(0);
   });

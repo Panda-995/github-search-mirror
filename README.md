@@ -108,15 +108,16 @@ REDIS_PASSWORD=change_me_redis_password
 
 **可选变量（按需追加到 `.env`）：**
 
-| 变量                | 说明                                                          |
-| ------------------- | ------------------------------------------------------------- |
-| `ADMIN_EMAILS`      | 管理员邮箱列表，多个邮箱用英文逗号分隔                        |
-| `GITHUB_TOKEN`      | GitHub API Token，用于提高公共 API 速率限制                   |
-| `ANTHROPIC_API_KEY` | Anthropic Claude API 密钥                                     |
-| `OPENAI_API_KEY`    | OpenAI API 密钥                                               |
-| `DEEPSEEK_API_KEY`  | DeepSeek API 密钥                                             |
-| `GEMINI_API_KEY`    | Gemini API 密钥                                               |
-| `MIRROR_BASE_URL`   | 可选的 Git 镜像服务基础 URL；未配置时 clone URL 回退到 GitHub |
+| 变量                | 说明                                                                   |
+| ------------------- | ---------------------------------------------------------------------- |
+| `ADMIN_EMAILS`      | 管理员邮箱列表，多个邮箱用英文逗号分隔                                 |
+| `NEXTAUTH_URL`      | 用户实际访问的站点地址；本机 Docker 测试默认为 `http://localhost:3000` |
+| `GITHUB_TOKEN`      | GitHub API Token，用于提高公共 API 速率限制                            |
+| `ANTHROPIC_API_KEY` | Anthropic Claude API 密钥                                              |
+| `OPENAI_API_KEY`    | OpenAI API 密钥                                                        |
+| `DEEPSEEK_API_KEY`  | DeepSeek API 密钥                                                      |
+| `GEMINI_API_KEY`    | Gemini API 密钥                                                        |
+| `MIRROR_BASE_URL`   | 可选的 Git 镜像服务基础 URL；未配置时 clone URL 回退到 GitHub          |
 
 **注意：** Docker Compose 会自动构建 `DATABASE_URL` 等连接字符串，无需手动设置。首次创建 PostgreSQL 数据卷时，`scripts/init.sql` 会初始化业务表；已有旧数据卷时请运行 `npm run db:migrate` 同步 schema。
 
