@@ -30,7 +30,6 @@ const DEFAULT_MAX_TOKENS_TRANSLATE = 8192;
 const DEFAULT_MAX_TOKENS_EXPLAIN = 2048;
 const DEFAULT_MAX_TOKENS_NATURAL_LANGUAGE = 200;
 const DEFAULT_README_MAX_LENGTH = 8000;
-const DEFAULT_EXPLAIN_SUMMARY_MAX_LENGTH = 500;
 const DEFAULT_AI_TIMEOUT_MS = 30000;
 
 function getAITimeoutSignal() {
@@ -106,6 +105,28 @@ function getProviderConfig(provider: AIProvider, customConfig?: AICustomConfig) 
       };
     }
   }
+}
+
+function getNaturalSummary(content: string): string {
+  const trimmed = content.trim();
+  const unfenced = trimmed
+    .replace(/^```(?:json|markdown)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  try {
+    const parsed = JSON.parse(unfenced) as unknown;
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "summary" in parsed &&
+      typeof parsed.summary === "string"
+    ) {
+      return parsed.summary.trim();
+    }
+  } catch {}
+
+  return unfenced;
 }
 
 export async function callAI(
@@ -281,13 +302,10 @@ export async function explainProject(
         {
           role: "system",
           content:
-            "请阅读以下 GitHub 项目的 README 内容，并生成一份项目介绍。要求：\n" +
-            "1) 用 2-3 句话概括项目的主要功能和用途（中文）\n" +
-            "2) 列出项目使用的主要技术栈（JSON 数组格式）\n" +
-            "3) 评估项目的上手难度（Beginner/Intermediate/Advanced）\n" +
-            "4) 推荐 2-3 个类似的替代项目（JSON 数组格式）\n" +
-            "请严格返回以下 JSON 格式，不要包含其他内容：\n" +
-            '{"summary": "项目介绍", "techStack": ["技术1", "技术2"], "difficulty": "Intermediate", "alternatives": ["替代项目1", "替代项目2"]}',
+            "请阅读以下 GitHub 项目的 README 内容，用中文自然语言生成一段项目说明。要求：\n" +
+            "1) 用 2-3 句话说明项目主要做什么、适合什么场景、有什么亮点。\n" +
+            "2) 直接输出自然语言段落，不要 JSON、Markdown 表格、标题、列表或代码块。\n" +
+            "3) 语气简洁、专业，避免模板化套话。",
         },
         {
           role: "user",
@@ -299,22 +317,13 @@ export async function explainProject(
     customConfig
   );
 
-  try {
-    const parsed = JSON.parse(response.content);
-    return {
-      summary: parsed.summary ?? "",
-      techStack: parsed.techStack ?? [],
-      difficulty: parsed.difficulty ?? "Intermediate",
-      alternatives: parsed.alternatives ?? [],
-    };
-  } catch {
-    return {
-      summary: response.content.slice(0, DEFAULT_EXPLAIN_SUMMARY_MAX_LENGTH),
-      techStack: [],
-      difficulty: "Intermediate",
-      alternatives: [],
-    };
-  }
+  const summary = getNaturalSummary(response.content);
+  return {
+    summary,
+    techStack: [],
+    difficulty: "Intermediate",
+    alternatives: [],
+  };
 }
 
 export async function naturalLanguageToQuery(

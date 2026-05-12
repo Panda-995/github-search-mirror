@@ -14,6 +14,7 @@ const AI_BODY_MAX_BYTES = 120_000;
 const AI_README_MAX_CHARS = 60_000;
 const AI_RATE_LIMIT_WINDOW_MS = 60_000;
 const AI_RATE_LIMIT_REQUESTS = 20;
+const AI_EXPLAIN_CACHE_VERSION = "natural-summary-v1";
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
 
     const { provider, customConfig } = await getUserAIConfig();
     const cacheKey = `ai:explain:${stableHash({
+      version: AI_EXPLAIN_CACHE_VERSION,
       userId: session.user.id,
       provider,
       model: customConfig?.model,

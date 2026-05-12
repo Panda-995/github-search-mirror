@@ -250,6 +250,62 @@ npm run test:coverage
 - `/api/health?strict=true` 会要求数据库、Redis、Meilisearch 全部可用；默认健康检查只要求必需服务通过。
 - 小规模或本地部署可使用 `DATABASE_PROVIDER=sqlite` 替代 PostgreSQL。
 
+## 更新日志
+
+### [v0.2.0] - 2026-05-12
+
+#### 功能更新
+
+- **仓库文件浏览器**：仓库详情页新增文件树导航，可按目录浏览仓库文件结构，点击文件可直接查看内容
+- **搜索预设面板**：搜索页新增常用搜索条件预设面板，支持快速切换语言、排序方式等组合条件
+- **仓库对比功能**：支持在仓库详情页将当前仓库加入对比看板，可同时对比多个仓库的关键指标
+- **仓库健康评分**：详情页侧边栏展示健康评分和风险提示，搜索结果卡片同步显示健康分和首要风险
+- **AI 仓库选型建议**：搜索结果页可基于当前搜索结果，由 AI 分析并生成选型建议
+- **AI 配置测试按钮**：设置页可直接测试当前 AI Provider/API Key 的连通性
+- **SQLite 原生支持**：通过 `DATABASE_PROVIDER=sqlite` 环境变量启用，无需 PostgreSQL，适合小规模部署
+
+#### 问题修复
+
+- 修复 SQLite 模式下搜索历史只记录"react"的问题（id 字段缺少自动生成）
+- 修复 AI 助手面板 markdown 渲染留白过多的问题
+- 修复 GitHub 头像在项目详情页无法显示的问题（改用原生 `<img>` 标签）
+- 修复 Docker 构建时 healthcheck 命令在 Alpine 镜像中不兼容的问题
+- 修复 CI 构建中 8 个 TypeScript 类型错误
+- 修复 `Math.random()` 在 React render 中调用违反 purity 规则的问题
+
+#### 改进优化
+
+- 趋势榜支持语言筛选、热度/Stars/最近更新排序，显示趋势分与估算新增 stars
+- README AI 问答页签改为更精确的答案引用
+- AI 面板布局优化，减少留白，提高信息密度
+- 移除评论/讨论功能，简化项目结构
+
+### [v0.1.0] - 2026-05-11
+
+#### 功能更新
+
+- **基础搜索**：支持关键词、语言、星标数、fork 数、更新时间、license、topic 等多维度检索
+- **趋势榜单**：按日、周、月查看 GitHub 趋势仓库
+- **仓库详情**：展示 README、topics、stars、forks、watchers 等信息
+- **AI 助手**：支持项目摘要、README 翻译、代码解释、README 问答
+- **个人收藏夹**：登录后可创建收藏夹，保存感兴趣的仓库
+- **搜索历史**：自动保存搜索记录，便于回溯
+- **用户设置**：可配置 GitHub Token 和 AI Provider/API Key
+- **管理后台**：提供用户管理和搜索/收藏统计分析
+- **Git 镜像加速**：配置镜像服务生成代理地址
+
+#### 技术特性
+
+- Next.js 16 + React 19 + TypeScript
+- PostgreSQL + Drizzle ORM（支持 SQLite 回退）
+- NextAuth.js 认证
+- Meilisearch 搜索（GitHub API 回退）
+- Redis + 内存缓存
+- AI 多 Provider 支持（Claude/OpenAI/Gemini/DeepSeek/自定义）
+- Docker + Docker Compose 部署
+- GitHub Actions CI/CD
+- 单元测试和性能测试
+
 ## 许可证
 
 [MIT](LICENSE)

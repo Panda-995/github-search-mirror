@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 interface SearchBoxProps {
   initialQuery?: string;
   size?: "default" | "large";
+  maxWidth?: number | string;
 }
 
 const HOT_KEYWORDS = ["react", "vue", "python", "docker", "ai", "typescript", "nextjs", "rust"];
@@ -20,7 +21,7 @@ const QUERY_TIPS = [
   { label: "最近更新", value: "pushed:>2026-01-01" },
 ];
 
-export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProps) {
+export function SearchBox({ initialQuery = "", size = "default", maxWidth }: SearchBoxProps) {
   const router = useRouter();
   const [queryState, setQueryState] = useState(() => ({
     initialQuery,
@@ -79,13 +80,23 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTyping =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable;
+
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         inputRef.current?.focus();
       }
-      if (e.key === "/" && document.activeElement !== inputRef.current) {
+      if (e.key === "/" && !isTyping && document.activeElement !== inputRef.current) {
         e.preventDefault();
         inputRef.current?.focus();
+      }
+      if (e.key === "Escape" && document.activeElement === inputRef.current) {
+        setIsFocused(false);
+        inputRef.current?.blur();
       }
     };
     window.addEventListener("keydown", handleGlobalKeyDown);
@@ -95,12 +106,18 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
   const isLarge = size === "large";
 
   return (
-    <div className="relative w-full mx-auto" style={{ maxWidth: isLarge ? 768 : 480 }}>
+    <div
+      className="relative w-full mx-auto"
+      style={{
+        maxWidth: maxWidth ?? (isLarge ? 768 : 480),
+        zIndex: isFocused ? "var(--z-popover)" : "auto",
+      }}
+    >
       {/* Search Input */}
       <Form
         action="/search"
         onSubmit={handleSubmit}
-        className="relative flex items-center transition-all z-20"
+        className="relative z-20 flex items-center transition-all"
         style={{
           height: isLarge ? 64 : 48,
           background: "var(--color-bg-card)",
@@ -178,6 +195,7 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
         {query && (
           <button
             type="button"
+            onMouseDown={(event) => event.preventDefault()}
             onClick={clearQuery}
             aria-label="清空搜索"
             className="icon-btn absolute right-2"
@@ -198,7 +216,7 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
             transition={{ duration: 0.15 }}
             className="absolute left-0 right-0 top-full mt-2 overflow-hidden"
             style={{
-              zIndex: "var(--z-dropdown)",
+              zIndex: "var(--z-popover)",
               background: "rgba(255, 255, 255, 0.95)",
               backdropFilter: "blur(12px)",
               WebkitBackdropFilter: "blur(12px)",
@@ -224,6 +242,7 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
                       <button
                         key={keyword}
                         type="button"
+                        onMouseDown={(event) => event.preventDefault()}
                         onClick={() => goToKeyword(keyword)}
                         className="tag"
                       >
@@ -249,6 +268,7 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
                   <button
                     key={tip.value}
                     type="button"
+                    onMouseDown={(event) => event.preventDefault()}
                     onClick={() => insertQualifier(tip.value)}
                     className="tag"
                     title={tip.value}

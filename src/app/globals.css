@@ -124,6 +124,7 @@
   /* Z-index */
   --z-navbar: 50;
   --z-dropdown: 50;
+  --z-popover: 70;
   --z-modal: 100;
 }
 

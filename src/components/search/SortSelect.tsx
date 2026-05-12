@@ -26,6 +26,7 @@ export function SortSelect() {
     } else {
       params.set("sort", value);
     }
+    params.delete("page");
     router.push(`/search?${params.toString()}`);
     setIsOpen(false);
   };
@@ -33,7 +34,9 @@ export function SortSelect() {
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
         className="flex items-center gap-2"
         style={{
           height: 36,
@@ -56,8 +59,9 @@ export function SortSelect() {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div
-            className="absolute right-0 top-full mt-1 z-20 overflow-hidden"
+            className="absolute right-0 top-full mt-1 overflow-hidden"
             style={{
+              zIndex: "var(--z-popover)",
               minWidth: 160,
               background: "var(--color-bg-card)",
               borderRadius: "var(--radius-lg)",
@@ -66,6 +70,7 @@ export function SortSelect() {
           >
             {SORT_OPTIONS.map((opt) => (
               <button
+                type="button"
                 key={opt.value}
                 onClick={() => handleChange(opt.value)}
                 className="w-full flex items-center justify-between px-3 py-2 text-sm text-left transition-colors"

@@ -77,12 +77,7 @@ describe("AI Performance", () => {
         json: async () => ({
           content: [
             {
-              text: JSON.stringify({
-                summary: "一个React项目",
-                techStack: ["React", "TypeScript"],
-                difficulty: "Intermediate",
-                alternatives: ["Vue", "Angular"],
-              }),
+              text: "React 是一个用于构建用户界面的 JavaScript 库，适合开发需要组件化和交互体验的前端项目。",
             },
           ],
           usage: { input_tokens: 300, output_tokens: 200 },
@@ -94,7 +89,7 @@ describe("AI Performance", () => {
       "AI Explain Project",
       async () => {
         const res = await explainProject("facebook/react", "A JS library", "# React");
-        expect(res.summary).toBe("一个React项目");
+        expect(res.summary).toContain("React");
       },
       { iterations: 10, warmupIterations: 2 }
     );

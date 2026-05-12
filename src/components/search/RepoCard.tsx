@@ -74,15 +74,15 @@ export function RepoCard({ repo }: RepoCardProps) {
   }, [repo]);
 
   const topRisk = health ? getTopRisk(health.risks) : null;
-  const gradeColors = health ? (GRADE_COLORS[health.grade] || GRADE_COLORS.C) : null;
+  const gradeColors = health ? GRADE_COLORS[health.grade] || GRADE_COLORS.C : null;
 
   return (
-    <div className="list-item-card group" style={{ padding: "24px" }}>
+    <div className="list-item-card group" style={{ padding: "clamp(16px, 2vw, 24px)" }}>
       {/* Title row */}
-      <div className="flex items-start justify-between gap-3 mb-2">
+      <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <Link
           href={`/repo/${repo.owner}/${repo.name}`}
-          className="line-clamp-1 transition-colors hover:underline"
+          className="min-w-0 break-all transition-colors hover:underline sm:line-clamp-1"
           style={{
             fontSize: "18px",
             fontWeight: "var(--font-weight-semibold)",
@@ -92,7 +92,9 @@ export function RepoCard({ repo }: RepoCardProps) {
           {repo.owner}/
           <span style={{ fontWeight: "var(--font-weight-semibold)" }}>{repo.name}</span>
         </Link>
-        <CompareButton repoFullName={repo.full_name} compact />
+        <div className="flex-shrink-0">
+          <CompareButton repoFullName={repo.full_name} compact />
+        </div>
       </div>
 
       {/* Description */}
@@ -121,7 +123,7 @@ export function RepoCard({ repo }: RepoCardProps) {
       )}
 
       {/* Meta row */}
-      <div className="flex items-center gap-6 flex-wrap">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         {repo.language && (
           <span
             className="flex items-center gap-1.5"
@@ -196,7 +198,7 @@ export function RepoCard({ repo }: RepoCardProps) {
         )}
 
         <span
-          className="flex items-center gap-1 ml-auto"
+          className="flex items-center gap-1 sm:ml-auto"
           style={{
             fontSize: "var(--font-size-caption)",
             color: "var(--color-text-muted)",

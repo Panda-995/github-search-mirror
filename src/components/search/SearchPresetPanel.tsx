@@ -33,7 +33,19 @@ function withoutPageParam(searchParams: URLSearchParams) {
   return params.toString();
 }
 
-export function SearchPresetPanel() {
+function getReadableQuery(queryString: string) {
+  try {
+    return decodeURIComponent(queryString).replaceAll("&", " · ");
+  } catch {
+    return queryString;
+  }
+}
+
+interface SearchPresetPanelProps {
+  onNavigate?: () => void;
+}
+
+export function SearchPresetPanel({ onNavigate }: SearchPresetPanelProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [presets, setPresets] = useState<SearchPreset[]>(() =>
@@ -82,18 +94,39 @@ export function SearchPresetPanel() {
 
   const applyPreset = (preset: SearchPreset) => {
     router.push(`/search?${preset.queryString}`);
+    onNavigate?.();
   };
 
   return (
-    <div className="card p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Bookmark style={{ width: 15, height: 15, color: "var(--color-primary)" }} />
-        <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-heading)" }}>
-          搜索预设
-        </h2>
+    <div
+      className="p-4"
+      style={{
+        background: "var(--color-bg-card)",
+        borderRadius: "var(--radius-2xl)",
+        boxShadow: "var(--shadow-base)",
+      }}
+    >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Bookmark style={{ width: 15, height: 15, color: "var(--color-primary)" }} />
+          <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-heading)" }}>
+            搜索预设
+          </h2>
+        </div>
+        {presets.length > 0 && (
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+            {presets.length}/20
+          </span>
+        )}
       </div>
 
-      <div className="flex gap-2">
+      <form
+        className="flex gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          savePreset();
+        }}
+      >
         <input
           value={name}
           onChange={(event) => {
@@ -104,11 +137,11 @@ export function SearchPresetPanel() {
           className="input min-w-0 flex-1 text-xs"
           style={{ height: 34, padding: "6px 10px" }}
         />
-        <button type="button" onClick={savePreset} className="btn-primary text-xs" style={{ padding: "7px 10px" }}>
+        <button type="submit" className="btn-primary text-xs" style={{ padding: "7px 10px" }}>
           <Save style={{ width: 13, height: 13 }} />
           保存
         </button>
-      </div>
+      </form>
 
       {message && (
         <p
@@ -161,7 +194,7 @@ export function SearchPresetPanel() {
                 </button>
               </div>
               <p className="mt-1 truncate text-xs" style={{ color: "var(--color-text-muted)" }}>
-                {decodeURIComponent(preset.queryString)}
+                {getReadableQuery(preset.queryString)}
               </p>
             </div>
           ))}

@@ -2,15 +2,14 @@ import { Suspense } from "react";
 import { searchRepositories } from "@/server/search.actions";
 import { saveSearchHistory } from "@/server/history.actions";
 import { SearchBox } from "@/components/search/SearchBox";
-import { FilterPanel } from "@/components/search/FilterPanel";
 import { RepoList } from "@/components/search/RepoList";
 import { SortSelect } from "@/components/search/SortSelect";
 import { AIRecommendationPanel } from "@/components/search/AIRecommendationPanel";
-import { SearchPresetPanel } from "@/components/search/SearchPresetPanel";
+import { SearchSidebar } from "@/components/search/SearchSidebar";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Inbox, Sparkles, Filter, AlertCircle } from "lucide-react";
+import { Search, Inbox, Sparkles, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
@@ -75,10 +74,12 @@ async function SearchResults({ params }: { params: SearchParams }) {
     <>
       {error && (
         <div
-          className="card p-4 mb-6"
+          className="mb-6 p-4"
           style={{
             background: "#FEF2F2",
             borderColor: "#FECACA",
+            borderRadius: "var(--radius-2xl)",
+            boxShadow: "var(--shadow-base)",
             color: "var(--color-error)",
           }}
         >
@@ -96,7 +97,14 @@ async function SearchResults({ params }: { params: SearchParams }) {
       )}
 
       {!searchRequest.normalizedQuery && !error && (
-        <div className="card flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+        <div
+          className="flex flex-col items-center justify-center px-4 py-12 sm:py-16"
+          style={{
+            background: "var(--color-bg-card)",
+            borderRadius: "var(--radius-2xl)",
+            boxShadow: "var(--shadow-base)",
+          }}
+        >
           <div
             className="flex items-center justify-center h-14 w-14 rounded-2xl mb-5"
             style={{ background: "var(--color-bg-hover)" }}
@@ -114,16 +122,23 @@ async function SearchResults({ params }: { params: SearchParams }) {
           </p>
           <div className="flex flex-wrap gap-2 justify-center max-w-md">
             {HOT_KEYWORDS.map((keyword) => (
-              <a key={keyword} href={`/search?q=${encodeURIComponent(keyword)}`} className="tag">
+              <Link key={keyword} href={`/search?q=${encodeURIComponent(keyword)}`} className="tag">
                 {keyword}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
       )}
 
       {searchRequest.normalizedQuery && results && results.total === 0 && !error && (
-        <div className="card flex flex-col items-center justify-center py-16 sm:py-20 px-4">
+        <div
+          className="flex flex-col items-center justify-center px-4 py-16 sm:py-20"
+          style={{
+            background: "var(--color-bg-card)",
+            borderRadius: "var(--radius-2xl)",
+            boxShadow: "var(--shadow-base)",
+          }}
+        >
           <div
             className="flex items-center justify-center h-14 w-14 rounded-2xl mb-5"
             style={{ background: "var(--color-bg-hover)" }}
@@ -144,20 +159,23 @@ async function SearchResults({ params }: { params: SearchParams }) {
 
       {results && results.total > 0 && (
         <>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3">
-            <p className="text-sm" style={{ color: "var(--color-text-body)" }}>
-              找到{" "}
-              <span className="font-semibold" style={{ color: "var(--color-text-heading)" }}>
-                {results.total.toLocaleString()}
-              </span>{" "}
-              个结果
+          <div
+            className="mb-4 flex flex-col gap-3 rounded-2xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            style={{
+              background: "var(--color-bg-card)",
+              boxShadow: "var(--shadow-base)",
+            }}
+          >
+            <div>
+              <p className="text-sm font-medium" style={{ color: "var(--color-text-heading)" }}>
+                {results.total.toLocaleString()} 个结果
+              </p>
               {searchRequest.normalizedQuery && (
-                <span style={{ color: "var(--color-text-muted)" }}>
-                  {" "}
-                  for &quot;{searchRequest.normalizedQuery}&quot;
-                </span>
+                <p className="mt-0.5 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                  &quot;{searchRequest.normalizedQuery}&quot;
+                </p>
               )}
-            </p>
+            </div>
             <SortSelect />
           </div>
           <RepoList results={results} searchParams={params} />
@@ -174,47 +192,49 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   return (
     <>
       <Header initialSearchQuery={params.q ?? ""} />
-      <main className="flex-1 min-h-screen">
+      <main className="flex-1 min-h-screen" style={{ background: "var(--color-bg-page)" }}>
         <div className="page-container py-6 sm:py-8">
           {/* Search header */}
-          <div className="card max-w-2xl mb-6 sm:mb-8 px-2 sm:px-0 p-4">
-            <div className="flex items-center gap-2 mb-3 sm:mb-4">
-              <Search style={{ width: 18, height: 18, color: "var(--color-text-muted)" }} />
-              <h1
-                className="text-base sm:text-lg"
-                style={{
-                  color: "var(--color-text-heading)",
-                  fontWeight: "var(--font-weight-semibold)",
-                }}
-              >
-                搜索项目
-              </h1>
+          <div
+            className="relative mb-5 overflow-visible rounded-2xl p-4 sm:mb-6 sm:p-5"
+            style={{
+              zIndex: 40,
+              background: "linear-gradient(135deg, rgba(255,255,255,0.98), rgba(238,242,255,0.78))",
+              boxShadow: "var(--shadow-lg)",
+            }}
+          >
+            <div className="mb-3 flex items-center justify-between gap-3 sm:mb-4">
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
+                  style={{ background: "var(--color-primary-light)" }}
+                >
+                  <Search style={{ width: 17, height: 17, color: "var(--color-primary)" }} />
+                </span>
+                <div className="min-w-0">
+                  <h1
+                    className="text-base font-semibold sm:text-lg"
+                    style={{ color: "var(--color-text-heading)" }}
+                  >
+                    搜索项目
+                  </h1>
+                  <p
+                    className="mt-0.5 truncate text-xs"
+                    style={{ color: "var(--color-text-muted)" }}
+                  >
+                    {params.q ? `当前关键词：${params.q}` : "输入关键词开始探索开源项目"}
+                  </p>
+                </div>
+              </div>
             </div>
-            <SearchBox initialQuery={params.q ?? ""} />
+            <SearchBox initialQuery={params.q ?? ""} maxWidth="100%" />
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-            {/* Mobile filter toggle */}
-            <div className="lg:hidden px-2">
-              <Link
-                href="/search"
-                className="btn-secondary inline-flex items-center gap-2 text-sm font-medium px-3 py-2"
-              >
-                <Filter style={{ width: 14, height: 14 }} />
-                筛选条件
-              </Link>
-            </div>
-
-            {/* Sidebar filters - no border card, directly on bg */}
-            <aside className="hidden lg:block lg:w-1/4 flex-shrink-0">
-              <div className="sticky top-20 space-y-5">
-                <SearchPresetPanel />
-                <FilterPanel />
-              </div>
-            </aside>
+          <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-start">
+            <SearchSidebar />
 
             {/* Results - 9 columns on desktop */}
-            <div className="flex-1 min-w-0 px-2 sm:px-0 lg:w-3/4">
+            <div className="min-w-0 flex-1">
               <Suspense
                 fallback={
                   <div className="space-y-3">

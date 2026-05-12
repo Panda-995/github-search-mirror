@@ -5,14 +5,7 @@ import Form from "next/form";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import {
-  Search,
-  TrendingUp,
-  User,
-  LayoutDashboard,
-  Command,
-  GitCompareArrows,
-} from "lucide-react";
+import { Search, TrendingUp, User, LayoutDashboard, Command, GitCompareArrows } from "lucide-react";
 import Image from "next/image";
 
 interface HeaderProps {
@@ -60,11 +53,17 @@ export function Header({ initialSearchQuery = "" }: HeaderProps = {}) {
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTyping =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable;
+
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
-      if (e.key === "/" && document.activeElement !== searchInputRef.current) {
+      if (e.key === "/" && !isTyping && document.activeElement !== searchInputRef.current) {
         e.preventDefault();
         searchInputRef.current?.focus();
       }

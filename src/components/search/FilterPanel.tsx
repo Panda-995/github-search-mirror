@@ -51,6 +51,7 @@ function FilterSection({ title, children }: FilterSectionProps) {
     <div className="mb-4">
       {/* Section title - uppercase, muted, semibold */}
       <button
+        type="button"
         className="flex items-center justify-between w-full mb-3"
         style={{
           fontSize: "var(--font-size-caption)",
@@ -77,7 +78,11 @@ function FilterSection({ title, children }: FilterSectionProps) {
   );
 }
 
-export function FilterPanel() {
+interface FilterPanelProps {
+  onNavigate?: () => void;
+}
+
+export function FilterPanel({ onNavigate }: FilterPanelProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
@@ -91,24 +96,28 @@ export function FilterPanel() {
 
   const applyFilter = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
     if (value) {
       params.set(key, value);
     } else {
       params.delete(key);
     }
     router.push(`/search?${params.toString()}`);
+    onNavigate?.();
   };
 
   const clearFilters = () => {
     const params = new URLSearchParams();
     if (query) params.set("q", query);
     router.push(`/search?${params.toString()}`);
+    onNavigate?.();
   };
 
   return (
     <div>
       {hasFilters && (
         <button
+          type="button"
           onClick={clearFilters}
           className="flex items-center gap-1 text-xs font-medium mb-4 transition-colors"
           style={{ color: "var(--color-primary)" }}
@@ -121,8 +130,10 @@ export function FilterPanel() {
       <FilterSection title="编程语言">
         {LANGUAGES.map((lang) => (
           <button
+            type="button"
             key={lang}
             onClick={() => applyFilter("language", currentLanguage === lang ? "" : lang)}
+            aria-pressed={currentLanguage === lang}
             className="flex items-center w-full px-2 py-1.5 text-sm rounded-md transition-colors"
             style={{
               height: 32,
@@ -142,8 +153,10 @@ export function FilterPanel() {
       <FilterSection title="Stars">
         {STAR_RANGES.map((range) => (
           <button
+            type="button"
             key={range.value}
             onClick={() => applyFilter("stars", currentStars === range.value ? "" : range.value)}
+            aria-pressed={currentStars === range.value}
             className="flex items-center w-full px-2 py-1.5 text-sm rounded-md transition-colors"
             style={{
               height: 32,
@@ -164,8 +177,10 @@ export function FilterPanel() {
       <FilterSection title="Forks">
         {FORK_RANGES.map((range) => (
           <button
+            type="button"
             key={range.value}
             onClick={() => applyFilter("forks", currentForks === range.value ? "" : range.value)}
+            aria-pressed={currentForks === range.value}
             className="flex items-center w-full px-2 py-1.5 text-sm rounded-md transition-colors"
             style={{
               height: 32,
@@ -186,10 +201,12 @@ export function FilterPanel() {
       <FilterSection title="更新时间">
         {UPDATE_RANGES.map((range) => (
           <button
+            type="button"
             key={range.value}
             onClick={() =>
               applyFilter("updated", currentUpdated === range.value ? "" : range.value)
             }
+            aria-pressed={currentUpdated === range.value}
             className="flex items-center w-full px-2 py-1.5 text-sm rounded-md transition-colors"
             style={{
               height: 32,

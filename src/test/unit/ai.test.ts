@@ -142,13 +142,13 @@ describe("translateReadme", () => {
 });
 
 describe("explainProject", () => {
-  it("should parse JSON response correctly", async () => {
+  it("should return natural language summary directly", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         content: [
           {
-            text: '{"summary": "A React framework", "techStack": ["React", "TypeScript"], "difficulty": "Intermediate", "alternatives": ["Vue", "Angular"]}',
+            text: "Next.js 是一个基于 React 的全栈应用框架，适合构建需要路由、渲染和服务端能力的 Web 项目。它的亮点是把页面开发、数据获取和部署流程整合得比较顺滑。",
           },
         ],
         usage: { input_tokens: 50, output_tokens: 30 },
@@ -156,23 +156,43 @@ describe("explainProject", () => {
     });
 
     const result = await explainProject("nextjs", "React framework", "# Next.js");
-    expect(result.summary).toBe("A React framework");
-    expect(result.techStack).toContain("React");
+    expect(result.summary).toBe(
+      "Next.js 是一个基于 React 的全栈应用框架，适合构建需要路由、渲染和服务端能力的 Web 项目。它的亮点是把页面开发、数据获取和部署流程整合得比较顺滑。"
+    );
+    expect(result.techStack).toEqual([]);
     expect(result.difficulty).toBe("Intermediate");
-    expect(result.alternatives).toContain("Vue");
+    expect(result.alternatives).toEqual([]);
   });
 
-  it("should handle invalid JSON gracefully", async () => {
+  it("should trim surrounding whitespace from summary", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        content: [{ text: "This is not JSON" }],
+        content: [{ text: "\n\nThis is a natural summary.\n" }],
         usage: { input_tokens: 10, output_tokens: 5 },
       }),
     });
 
     const result = await explainProject("test", "desc", "readme");
-    expect(result.summary).toBe("This is not JSON");
+    expect(result.summary).toBe("This is a natural summary.");
+    expect(result.techStack).toEqual([]);
+  });
+
+  it("should unwrap summary when the provider still returns JSON", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        content: [
+          {
+            text: '```json\n{"summary":"这是自然语言说明","techStack":["React"]}\n```',
+          },
+        ],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      }),
+    });
+
+    const result = await explainProject("test", "desc", "readme");
+    expect(result.summary).toBe("这是自然语言说明");
     expect(result.techStack).toEqual([]);
   });
 });
