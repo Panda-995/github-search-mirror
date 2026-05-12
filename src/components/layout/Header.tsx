@@ -5,7 +5,14 @@ import Form from "next/form";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Search, TrendingUp, User, LayoutDashboard, Command } from "lucide-react";
+import {
+  Search,
+  TrendingUp,
+  User,
+  LayoutDashboard,
+  Command,
+  GitCompareArrows,
+} from "lucide-react";
 import Image from "next/image";
 
 interface HeaderProps {
@@ -38,6 +45,7 @@ export function Header({ initialSearchQuery = "" }: HeaderProps = {}) {
   const navItems = [
     { href: "/search", label: "搜索", icon: Search },
     { href: "/trending", label: "趋势", icon: TrendingUp },
+    { href: "/compare", label: "对比", icon: GitCompareArrows },
   ];
 
   const handleSearchSubmit = useCallback(

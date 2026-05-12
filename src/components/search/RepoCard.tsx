@@ -6,6 +6,7 @@ import type { RepoItem } from "@/types";
 import { formatNumber, formatDate } from "@/lib/utils";
 import { calculateRepoHealth, getTopRisk } from "@/lib/repo-insights";
 import { useMemo } from "react";
+import { CompareButton } from "@/components/compare/CompareButton";
 
 interface RepoCardProps {
   repo: RepoItem;
@@ -91,6 +92,7 @@ export function RepoCard({ repo }: RepoCardProps) {
           {repo.owner}/
           <span style={{ fontWeight: "var(--font-weight-semibold)" }}>{repo.name}</span>
         </Link>
+        <CompareButton repoFullName={repo.full_name} compact />
       </div>
 
       {/* Description */}

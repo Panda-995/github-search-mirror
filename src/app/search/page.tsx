@@ -6,6 +6,7 @@ import { FilterPanel } from "@/components/search/FilterPanel";
 import { RepoList } from "@/components/search/RepoList";
 import { SortSelect } from "@/components/search/SortSelect";
 import { AIRecommendationPanel } from "@/components/search/AIRecommendationPanel";
+import { SearchPresetPanel } from "@/components/search/SearchPresetPanel";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -206,7 +207,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
             {/* Sidebar filters - no border card, directly on bg */}
             <aside className="hidden lg:block lg:w-1/4 flex-shrink-0">
-              <div className="sticky top-20">
+              <div className="sticky top-20 space-y-5">
+                <SearchPresetPanel />
                 <FilterPanel />
               </div>
             </aside>

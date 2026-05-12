@@ -28,6 +28,23 @@ interface GitHubSearchResponse {
   items: GitHubRepo[];
 }
 
+export interface GitHubContentItem {
+  name: string;
+  path: string;
+  sha: string;
+  size: number;
+  type: "file" | "dir" | "symlink" | "submodule";
+  download_url: string | null;
+  html_url: string;
+  url: string;
+}
+
+export interface GitHubFileContent extends GitHubContentItem {
+  content: string;
+  encoding: string;
+  decodedContent: string;
+}
+
 // Simple in-memory cache for GitHub API responses
 const cache = new Map<string, { data: unknown; expires: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -104,6 +121,14 @@ async function githubFetch<T>(path: string, token?: string): Promise<T> {
   return data;
 }
 
+function encodeGitHubPath(path: string): string {
+  return path
+    .split("/")
+    .filter(Boolean)
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+}
+
 export async function searchRepos(
   query: string,
   options: {
@@ -158,6 +183,60 @@ export async function getRepoReadme(owner: string, repo: string, token?: string)
 
   setCached(cacheKey, content);
   return content;
+}
+
+export async function getRepoContents(
+  owner: string,
+  repo: string,
+  path = "",
+  token?: string
+): Promise<GitHubContentItem[]> {
+  const encodedPath = encodeGitHubPath(path);
+  const endpoint = encodedPath
+    ? `/repos/${owner}/${repo}/contents/${encodedPath}`
+    : `/repos/${owner}/${repo}/contents`;
+  const data = await githubFetch<GitHubContentItem | GitHubContentItem[]>(endpoint, token);
+  const items = Array.isArray(data) ? data : [data];
+
+  return [...items].sort((a, b) => {
+    if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+export async function getRepoFileContent(
+  owner: string,
+  repo: string,
+  path: string,
+  token?: string
+): Promise<GitHubFileContent> {
+  const encodedPath = encodeGitHubPath(path);
+  if (!encodedPath) {
+    throw new Error("File path is required");
+  }
+
+  const data = await githubFetch<GitHubContentItem & { content?: string; encoding?: string }>(
+    `/repos/${owner}/${repo}/contents/${encodedPath}`,
+    token
+  );
+  if (data.type !== "file") {
+    throw new Error("Requested path is not a file");
+  }
+  if (typeof data.content !== "string") {
+    throw new Error("File content is not available from GitHub API");
+  }
+
+  const decodedContent =
+    data.encoding === "base64"
+      ? Buffer.from(data.content.replace(/\s/g, ""), "base64").toString("utf-8")
+      : data.content;
+
+  return {
+    ...data,
+    content: data.content,
+    encoding: data.encoding ?? "utf-8",
+    decodedContent,
+  };
 }
 
 export async function getRepoLanguages(

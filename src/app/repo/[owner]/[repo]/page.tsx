@@ -4,6 +4,8 @@ import { ReadmeViewer } from "@/components/repo/ReadmeViewer";
 import { AIPanel } from "@/components/repo/AIPanel";
 import { RepoHealthCard } from "@/components/repo/RepoHealthCard";
 import { FavoriteButton } from "@/components/repo/FavoriteButton";
+import { RepoFileBrowser } from "@/components/repo/RepoFileBrowser";
+import { CompareButton } from "@/components/compare/CompareButton";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -180,6 +182,7 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
+                <CompareButton repoFullName={`${owner}/${repo}`} />
                 {/* Favorite Button */}
                 <FavoriteButton
                   repoFullName={`${owner}/${repo}`}
@@ -299,13 +302,14 @@ async function RepoContent({ owner, repo }: { owner: string; repo: string }) {
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* README */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-4">
           <ReadmeViewer
             content={readme}
             owner={repoData.owner.login}
             repoName={repoData.name}
             defaultBranch={repoData.default_branch}
           />
+          <RepoFileBrowser owner={repoData.owner.login} repoName={repoData.name} />
         </div>
 
         {/* Sidebar */}

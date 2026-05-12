@@ -12,6 +12,13 @@ interface SearchBoxProps {
 }
 
 const HOT_KEYWORDS = ["react", "vue", "python", "docker", "ai", "typescript", "nextjs", "rust"];
+const QUERY_TIPS = [
+  { label: "语言", value: "language:typescript" },
+  { label: "星标", value: "stars:>1000" },
+  { label: "主题", value: "topic:ai" },
+  { label: "组织", value: "org:vercel" },
+  { label: "最近更新", value: "pushed:>2026-01-01" },
+];
 
 export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProps) {
   const router = useRouter();
@@ -54,6 +61,15 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
       router.push(`/search?q=${encodeURIComponent(keyword)}`);
     },
     [router, setQuery]
+  );
+
+  const insertQualifier = useCallback(
+    (value: string) => {
+      const next = query.trim() ? `${query.trim()} ${value}` : value;
+      setQuery(next);
+      inputRef.current?.focus();
+    },
+    [query, setQuery]
   );
 
   const clearQuery = useCallback(() => {
@@ -172,9 +188,9 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
         )}
       </Form>
 
-      {/* Dropdown - Hot Search Tags */}
+      {/* Dropdown - Hot Search Tags and Syntax Hints */}
       <AnimatePresence>
-        {isFocused && !query && (
+        {isFocused && (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -191,25 +207,53 @@ export function SearchBox({ initialQuery = "", size = "default" }: SearchBoxProp
             }}
           >
             <div className="px-4 py-3">
+              {!query && (
+                <>
+                  <p
+                    className="uppercase tracking-wider mb-3"
+                    style={{
+                      fontSize: "var(--font-size-caption)",
+                      fontWeight: "var(--font-weight-medium)",
+                      color: "var(--color-text-muted)",
+                    }}
+                  >
+                    热门搜索
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {HOT_KEYWORDS.map((keyword) => (
+                      <button
+                        key={keyword}
+                        type="button"
+                        onClick={() => goToKeyword(keyword)}
+                        className="tag"
+                      >
+                        {keyword}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
               <p
-                className="uppercase tracking-wider mb-3"
+                className={`${query ? "" : "mt-4"} uppercase tracking-wider mb-3`}
                 style={{
                   fontSize: "var(--font-size-caption)",
                   fontWeight: "var(--font-weight-medium)",
                   color: "var(--color-text-muted)",
                 }}
               >
-                热门搜索
+                搜索语法
               </p>
               <div className="flex flex-wrap gap-2">
-                {HOT_KEYWORDS.map((keyword) => (
+                {QUERY_TIPS.map((tip) => (
                   <button
-                    key={keyword}
+                    key={tip.value}
                     type="button"
-                    onClick={() => goToKeyword(keyword)}
+                    onClick={() => insertQualifier(tip.value)}
                     className="tag"
+                    title={tip.value}
                   >
-                    {keyword}
+                    {tip.label}
                   </button>
                 ))}
               </div>
