@@ -308,4 +308,4 @@ npm run test:coverage
 
 ## 许可证
 
-[MIT](LICENSE)
+[AGPL-3.0](LICENSE)
